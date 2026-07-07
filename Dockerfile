@@ -3,11 +3,10 @@ FROM ghcr.io/cirruslabs/flutter:3.19.6 AS build
 
 WORKDIR /app
 
-ARG API_BASE_URL=https://pos-bar-api-production.up.railway.app/api
+ARG API_BASE_URL=https://pos.rosebanktavern.co.tz/api
 
 COPY pubspec.yaml pubspec.lock ./
 COPY packages/pos_bar_core packages/pos_bar_core
-COPY android/ android/
 RUN flutter pub get
 
 COPY . .
@@ -22,8 +21,8 @@ RUN chmod +x /docker-entrypoint.sh
 
 COPY --from=build /app/build/web /usr/share/nginx/html
 
-ENV API_BASE_URL=https://pos-bar-api-production.up.railway.app/api
-ENV ONLINE_API_BASE_URL=https://pos-bar-api-production.up.railway.app/api
+ENV API_BASE_URL=https://pos.rosebanktavern.co.tz/api
+ENV ONLINE_API_BASE_URL=https://pos.rosebanktavern.co.tz/api
 ENV PORT=8080
 EXPOSE 8080
 
