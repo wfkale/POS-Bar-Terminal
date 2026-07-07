@@ -74,11 +74,11 @@ class _StaffSplashScreenState extends State<StaffSplashScreen> {
                         .toList();
 
                     return GridView.builder(
-                      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                        maxCrossAxisExtent: 220,
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 4,
                         mainAxisSpacing: 16,
                         crossAxisSpacing: 16,
-                        childAspectRatio: 0.85,
+                        childAspectRatio: 0.78,
                       ),
                       itemCount: floorStaff.length,
                       itemBuilder: (context, index) {
@@ -123,7 +123,7 @@ class _NameCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(20),
         child: Container(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: color.withOpacity(0.4)),
@@ -132,17 +132,29 @@ class _NameCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               CircleAvatar(
-                radius: 36,
+                radius: 28,
                 backgroundColor: color,
                 child: Text(
                   staff.name.characters.first.toUpperCase(),
-                  style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
+                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
                 ),
               ),
-              const SizedBox(height: 16),
-              Text(staff.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 12),
+              Text(
+                staff.name,
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
               const SizedBox(height: 4),
-              Text(roleLabel, style: TextStyle(color: AppTheme.textSecondary.withOpacity(0.9))),
+              Text(
+                roleLabel,
+                style: TextStyle(fontSize: 13, color: AppTheme.textSecondary.withOpacity(0.9)),
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ],
           ),
         ),
