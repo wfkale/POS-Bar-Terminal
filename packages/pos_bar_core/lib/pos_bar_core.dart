@@ -28,4 +28,5 @@ export 'src/receipt/receipt_print_service.dart';
 export 'src/receipt/thermal_printer_service.dart';
 export 'src/receipt/printer_settings_screen.dart';
 export 'src/receipt/pay_checkout_sheet.dart';
+export 'src/receipt/receipt_preview_sheet.dart';
 export 'src/receipt/esc_pos_builder.dart';

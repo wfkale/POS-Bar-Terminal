@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:js_interop';
 import 'dart:typed_data';
 
@@ -23,8 +24,11 @@ extension PosBarPrinterJsExt on PosBarPrinterJs {
   @JS('requestBluetooth')
   external JSPromise requestBluetooth();
 
-  @JS('printBytes')
-  external JSPromise printBytes(JSUint8Array data, JSString transport);
+  @JS('printBase64')
+  external JSPromise printBase64(JSString data, JSString transport);
+
+  @JS('forget')
+  external JSPromise forget();
 }
 
 /// Web Serial + Web Bluetooth via helpers injected in web/index.html (`PosBarPrinter`).
@@ -68,10 +72,17 @@ class ThermalPrinterPlatform {
 
   static Future<void> printBytes(Uint8List bytes, PairedPrinter paired) async {
     try {
-      await _printer.printBytes(bytes.toJS, paired.transport.toJS).toDart;
+      // Base64 avoids fragile TypedArray dart2js interop on Flutter 3.19 / Dart 3.3.
+      await _printer.printBase64(base64Encode(bytes).toJS, paired.transport.toJS).toDart;
     } catch (e) {
       throw ThermalPrinterException(_errorMessage(e, 'Print failed.'));
     }
+  }
+
+  static Future<void> forgetHardware() async {
+    try {
+      await _printer.forget().toDart;
+    } catch (_) {}
   }
 
   static Map<String, String> _asStringMap(JSAny? result) {
@@ -88,6 +99,11 @@ class ThermalPrinterPlatform {
     if (msg.contains('NotFoundError') || msg.contains('cancel')) {
       return 'Printer selection cancelled.';
     }
-    return msg.isNotEmpty ? msg.replaceFirst('Exception: ', '') : fallback;
+    // Chrome/JS often wraps as "Error: ..."
+    final cleaned = msg
+        .replaceFirst(RegExp(r'^Exception:\s*'), '')
+        .replaceFirst(RegExp(r'^JSNull:\s*'), '')
+        .replaceFirst(RegExp(r'^Error:\s*'), '');
+    return cleaned.isNotEmpty ? cleaned : fallback;
   }
 }

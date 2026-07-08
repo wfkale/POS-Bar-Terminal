@@ -15,4 +15,6 @@ class ThermalPrinterPlatform {
   static Future<void> printBytes(dynamic bytes, PairedPrinter paired) async {
     throw ThermalPrinterException('Thermal printing is only available in the web PWA (Chrome/Edge).');
   }
+
+  static Future<void> forgetHardware() async {}
 }

@@ -47,6 +47,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
           order: order,
           venue: VenueScope.of(context).venue,
           billNumber: bill['bill_number']?.toString() ?? order.orderNumber,
+          previewContext: context,
         );
       } on ThermalPrinterException catch (e) {
         if (mounted) {

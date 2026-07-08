@@ -107,8 +107,8 @@ class AppStrings {
   // Printing
   String get printerSettings => _sw ? 'Mipangilio ya printa' : 'Printer settings';
   String get printerSettingsIntro => _sw
-      ? 'Unganisha printa ya joto 80mm (eneo la kuchapa ~72mm) kupitia Bluetooth au USB Serial. Chrome/Edge inahitajika.'
-      : 'Pair an 80mm thermal printer (~72mm print width) over Bluetooth or USB Serial. Chrome/Edge required.';
+      ? 'Unganisha printa ya joto 80mm (~72mm) kwa Bluetooth (Chrome kwenye tablet + HTTPS). Baada ya kuunganisha, jaribu Test print wakati huu uko kwenye skrini hii.'
+      : 'Pair an 80mm thermal printer (~72mm) over Bluetooth (Chrome on tablet + HTTPS). After connecting, run Test print while still on this screen.';
   String get noPrinterPaired => _sw ? 'Hakuna printa' : 'No printer paired';
   String get pairPrinterHint => _sw ? 'Unganisha printa ili kuchapisha bili na risiti' : 'Connect a printer to print bills and receipts';
   String get forgetPrinter => _sw ? 'Ondoa printa' : 'Forget printer';
@@ -119,7 +119,11 @@ class AppStrings {
   String get connectBluetooth => _sw ? 'Unganisha Bluetooth' : 'Connect Bluetooth';
   String get connectUsbSerial => _sw ? 'Unganisha USB / Serial' : 'Connect USB / Serial';
   String get testPrint => _sw ? 'Chapisha jaribio' : 'Test print';
+  String get previewReceipt => _sw ? 'Angalia risiti' : 'Preview receipt';
   String get testPrintSent => _sw ? 'Jaribio limetumwa kwa printa' : 'Test print sent to printer';
+  String get previewHint => _sw
+      ? 'Ikiwa unapata GATT error: Ondoa printa, zima/washa BT ya printa, kisha Unganisha Bluetooth tena. Preview inaonyesha maandishi ya risiti.'
+      : 'If you get a GATT error: Forget printer, power-cycle printer Bluetooth, then Connect Bluetooth again. Preview shows the receipt text.';
   String printerPaired(String name) => _sw ? '$name imeunganishwa' : '$name paired';
   String get completeWithReceipt => _sw ? 'KAMILISHA NA RISITI' : 'COMPLETE WITH RECEIPT';
   String get completeNoReceipt => _sw ? 'KAMILISHA BILA RISITI' : 'COMPLETE NO RECEIPT';

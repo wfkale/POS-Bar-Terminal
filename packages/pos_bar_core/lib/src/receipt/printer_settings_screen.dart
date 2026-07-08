@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:pos_bar_core/pos_bar_core.dart';
+
+import '../config/venue_scope.dart';
+import '../l10n/app_strings.dart';
+import '../theme/app_theme.dart';
+import 'bar_receipt.dart';
+import 'receipt_preview_sheet.dart';
+import 'thermal_printer_service.dart';
 
 /// Pair Bluetooth / USB-serial 80mm thermal printers for Chrome PWAs.
 class PrinterSettingsScreen extends StatefulWidget {
@@ -19,6 +25,24 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
   void initState() {
     super.initState();
     _load();
+  }
+
+  BarReceipt _testReceipt(String venueName) {
+    return BarReceipt(
+      kind: 'final',
+      venueName: venueName,
+      documentNumber: 'TEST-PRINT',
+      currency: 'TZS',
+      items: const [
+        BarReceiptItem(name: 'Test item', quantity: 1, unitPrice: 1000, lineTotal: 1000),
+      ],
+      subtotal: 847.46,
+      taxAmount: 152.54,
+      taxRate: 18,
+      total: 1000,
+      printedAt: DateTime.now(),
+      notes: 'Printer connection OK',
+    );
   }
 
   Future<void> _load() async {
@@ -61,6 +85,11 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
           Text(
             l10n.printerSettingsIntro,
             style: const TextStyle(color: AppTheme.textSecondary, height: 1.4),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            l10n.previewHint,
+            style: const TextStyle(color: AppTheme.textSecondary, height: 1.4, fontSize: 13),
           ),
           const SizedBox(height: 20),
           Card(
@@ -123,11 +152,36 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
             onPressed: (_printer == null || _busy)
                 ? null
                 : () => _run(() async {
-                      await ThermalPrinterService.testPrint(venueName: venueName);
-                      setState(() => _status = l10n.testPrintSent);
+                      try {
+                        await ThermalPrinterService.testPrint(venueName: venueName);
+                        setState(() => _status = l10n.testPrintSent);
+                      } catch (e) {
+                        if (mounted) {
+                          await showReceiptPreview(
+                            context: context,
+                            receipt: _testReceipt(venueName),
+                            title: '${l10n.previewReceipt} (print failed)',
+                          );
+                        }
+                        rethrow;
+                      }
                     }),
             icon: const Icon(Icons.receipt_long),
             label: Text(l10n.testPrint),
+          ),
+          const SizedBox(height: 12),
+          TextButton.icon(
+            onPressed: _busy
+                ? null
+                : () async {
+                    await showReceiptPreview(
+                      context: context,
+                      receipt: _testReceipt(venueName),
+                      title: l10n.previewReceipt,
+                    );
+                  },
+            icon: const Icon(Icons.visibility),
+            label: Text(l10n.previewReceipt),
           ),
           if (_busy) ...[
             const SizedBox(height: 24),

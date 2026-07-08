@@ -70,6 +70,7 @@ class ThermalPrinterService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_prefsKey);
     _cached = null;
+    await platform.ThermalPrinterPlatform.forgetHardware();
   }
 
   static Future<bool> get isSupported async => platform.ThermalPrinterPlatform.isSupported;
