@@ -24,6 +24,13 @@ class FloorHomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final trailing = <Widget>[
+      IconButton(
+        tooltip: l10n.printerSettings,
+        onPressed: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const PrinterSettingsScreen()),
+        ),
+        icon: const Icon(Icons.print),
+      ),
       ...extraAppBarActions,
       if (onLogout != null) IconButton(onPressed: onLogout, icon: const Icon(Icons.logout)),
     ];

@@ -103,4 +103,32 @@ class AppStrings {
   String get deletionRequested => _sw ? 'Ombi la kufuta limewasilishwa' : 'Deletion request submitted';
   String get payQueue => _sw ? 'Foleni ya malipo' : 'Pay queue';
   String get floorOps => _sw ? 'Shughuli za sakafu' : 'Floor';
+
+  // Printing
+  String get printerSettings => _sw ? 'Mipangilio ya printa' : 'Printer settings';
+  String get printerSettingsIntro => _sw
+      ? 'Unganisha printa ya joto 80mm (eneo la kuchapa ~72mm) kupitia Bluetooth au USB Serial. Chrome/Edge inahitajika.'
+      : 'Pair an 80mm thermal printer (~72mm print width) over Bluetooth or USB Serial. Chrome/Edge required.';
+  String get noPrinterPaired => _sw ? 'Hakuna printa' : 'No printer paired';
+  String get pairPrinterHint => _sw ? 'Unganisha printa ili kuchapisha bili na risiti' : 'Connect a printer to print bills and receipts';
+  String get forgetPrinter => _sw ? 'Ondoa printa' : 'Forget printer';
+  String get printerForgotten => _sw ? 'Printa imeondolewa' : 'Printer forgotten';
+  String get printerNotSupported => _sw
+      ? 'Kifaa hiki hakitumii Web Bluetooth/Serial. Tumia Chrome kwenye Android au desktop.'
+      : 'This browser does not support Web Bluetooth/Serial. Use Chrome on Android or desktop.';
+  String get connectBluetooth => _sw ? 'Unganisha Bluetooth' : 'Connect Bluetooth';
+  String get connectUsbSerial => _sw ? 'Unganisha USB / Serial' : 'Connect USB / Serial';
+  String get testPrint => _sw ? 'Chapisha jaribio' : 'Test print';
+  String get testPrintSent => _sw ? 'Jaribio limetumwa kwa printa' : 'Test print sent to printer';
+  String printerPaired(String name) => _sw ? '$name imeunganishwa' : '$name paired';
+  String get completeWithReceipt => _sw ? 'KAMILISHA NA RISITI' : 'COMPLETE WITH RECEIPT';
+  String get completeNoReceipt => _sw ? 'KAMILISHA BILA RISITI' : 'COMPLETE NO RECEIPT';
+  String get choosePayment => _sw ? 'Chagua njia ya malipo' : 'Choose payment method';
+  String get receiptPrinted => _sw ? 'Risiti imechapishwa' : 'Receipt printed';
+  String get billPrintFailed => _sw
+      ? 'Malipo yamefanikiwa, lakini uchapishaji wa risiti umeshindikana'
+      : 'Payment succeeded, but receipt printing failed';
+  String get printerNeeded => _sw
+      ? 'Unganisha printa kwenye Mipangilio ya printa kwanza'
+      : 'Pair a printer in Printer settings first';
 }
