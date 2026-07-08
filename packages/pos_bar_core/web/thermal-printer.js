@@ -1,7 +1,7 @@
 /**
  * POS Bar thermal printer helpers for Chrome/Edge PWAs.
- * Web Bluetooth (primary for tablets) + Web Serial fallback.
- * Tuned for Chinese ESC/POS BLE printers (Feasycom 0x18F0), e.g. ROMESON QP160R.
+ * Web Bluetooth primary (tablets) + Web Serial fallback.
+ * Tuned for Feasycom-style ESC/POS BLE printers (ROMESON QP160R / 0x18F0).
  */
 (function (global) {
   'use strict';
@@ -10,9 +10,10 @@
   var activeBtDevice = null;
   var activeBtCharacteristic = null;
   var activeBtWriteMode = null; // 'with' | 'without'
+  var activeBtChunkSize = 20;
   var serialBaudRate = 9600;
+  var writeQueue = Promise.resolve();
 
-  // Feasycom / Zijiang / Xprinter / generic Chinese ESC-POS BLE profiles.
   var BT_SERVICES = [
     '000018f0-0000-1000-8000-00805f9b34fb',
     '0000ff00-0000-1000-8000-00805f9b34fb',
@@ -24,7 +25,7 @@
   ];
 
   var BT_CHARS = [
-    '00002af1-0000-1000-8000-00805f9b34fb', // Feasycom print TX (most common)
+    '00002af1-0000-1000-8000-00805f9b34fb',
     '0000ff02-0000-1000-8000-00805f9b34fb',
     '0000fff2-0000-1000-8000-00805f9b34fb',
     '0000ffe1-0000-1000-8000-00805f9b34fb',
@@ -55,6 +56,12 @@
     });
   }
 
+  function clearBtCache() {
+    activeBtCharacteristic = null;
+    activeBtWriteMode = null;
+    activeBtChunkSize = 20;
+  }
+
   function requestSerial() {
     if (!navigator.serial) {
       return Promise.reject(new Error('Web Serial not available. Use Chrome/Edge over HTTPS.'));
@@ -80,58 +87,23 @@
     }
     return navigator.bluetooth
       .requestDevice({
-        // acceptAllDevices works well on Android tablets; filters exclude some QP160R clones.
         acceptAllDevices: true,
         optionalServices: BT_SERVICES,
       })
       .then(function (device) {
         activeBtDevice = device;
-        activeBtCharacteristic = null;
-        activeBtWriteMode = null;
+        clearBtCache();
         device.addEventListener('gattserverdisconnected', function () {
-          activeBtCharacteristic = null;
-          activeBtWriteMode = null;
+          // Characteristic handles are invalid after disconnect.
+          clearBtCache();
         });
-        return device.gatt.connect().then(function (server) {
-          return resolveBtCharacteristic(server).then(function (c) {
-            if (!c) {
-              throw new Error(
-                'Paired, but no writable Bluetooth print characteristic was found. Forget the printer, put it in pairing mode, and try Connect Bluetooth again.'
-              );
-            }
-            activeBtCharacteristic = c;
-            return probeWrite(c).then(function () {
-              return {
-                id: device.id || 'bt',
-                name: device.name || 'Bluetooth thermal printer',
-                transport: 'web_bluetooth',
-              };
-            });
-          });
+        return ensureBluetoothReady({ forceRediscover: true, probe: true }).then(function () {
+          return {
+            id: device.id || 'bt',
+            name: device.name || 'Bluetooth thermal printer',
+            transport: 'web_bluetooth',
+          };
         });
-      });
-  }
-
-  /** Tiny ESC @ probe so we learn whether write-with-response works on this printer. */
-  function probeWrite(characteristic) {
-    var init = new Uint8Array([0x1b, 0x40]);
-    return tryWrite(characteristic, init, 'with')
-      .then(function () {
-        activeBtWriteMode = 'with';
-      })
-      .catch(function () {
-        return tryWrite(characteristic, init, 'without').then(function () {
-          activeBtWriteMode = 'without';
-        });
-      })
-      .catch(function (err) {
-        throw new Error(
-          'Bluetooth connected, but writing failed (' +
-            ((err && err.name) || 'Error') +
-            ': ' +
-            ((err && err.message) || err) +
-            '). Forget printer, power-cycle the printer, then Connect Bluetooth again.'
-        );
       });
   }
 
@@ -215,11 +187,13 @@
     var props = characteristic.properties || {};
     var uuid = String(characteristic.uuid || '').toLowerCase();
     var score = 0;
-    if (props.write) score += 3; // prefer write-with-response for Feasycom / QP160R
-    if (props.writeWithoutResponse) score += 1;
+    if (props.write) score += 3;
+    if (props.writeWithoutResponse) score += 2;
     if (BT_CHARS.indexOf(uuid) !== -1) score += 5;
-    if (uuid.indexOf('2af1') !== -1 || uuid.indexOf('ff02') !== -1 || uuid.indexOf('fff2') !== -1) score += 4;
-    if (props.notify || props.indicate) score -= 1; // status chars less useful for print
+    if (uuid.indexOf('2af1') !== -1 || uuid.indexOf('ff02') !== -1 || uuid.indexOf('fff2') !== -1) {
+      score += 4;
+    }
+    if (props.notify || props.indicate) score -= 1;
     return score;
   }
 
@@ -302,47 +276,86 @@
     });
   }
 
-  function tryWrite(characteristic, chunk, mode) {
-    // Always pass a fresh Uint8Array — ArrayBuffer views sometimes trigger NotSupportedError.
-    var payload = chunk instanceof Uint8Array ? chunk : new Uint8Array(chunk);
+  function preferredModes(characteristic) {
     var props = characteristic.properties || {};
+    var modes = [];
+    // Android Chrome is happiest with classic writeValue (with response) for Feasycom.
+    if (props.write) modes.push('with');
+    if (props.writeWithoutResponse) modes.push('without');
+    if (!modes.length) modes.push('with', 'without');
+    return modes;
+  }
+
+  function tryWrite(characteristic, chunk, mode) {
+    // Fresh copy — some Android stacks reject sliced SharedArrayBuffer views.
+    var payload = new Uint8Array(chunk);
 
     if (mode === 'with') {
-      if (characteristic.writeValueWithResponse) {
-        return characteristic.writeValueWithResponse(payload);
-      }
-      if (props.write || characteristic.writeValue) {
+      // Prefer legacy writeValue — more reliable than writeValueWithResponse on Android Chrome.
+      if (typeof characteristic.writeValue === 'function') {
         return characteristic.writeValue(payload);
+      }
+      if (typeof characteristic.writeValueWithResponse === 'function') {
+        return characteristic.writeValueWithResponse(payload);
       }
       return Promise.reject(new Error('write-with-response not supported'));
     }
 
-    if (characteristic.writeValueWithoutResponse) {
+    if (typeof characteristic.writeValueWithoutResponse === 'function') {
       return characteristic.writeValueWithoutResponse(payload);
-    }
-    if (props.writeWithoutResponse && characteristic.writeValue) {
-      return characteristic.writeValue(payload);
     }
     return Promise.reject(new Error('write-without-response not supported'));
   }
 
-  function writeChunks(characteristic, bytes) {
-    // Feasycom default in @point-of-sale/webbluetooth-receipt-printer is 100 bytes + writeWithResponse.
-    var chunkSize = 100;
-    var mode = activeBtWriteMode || 'with';
+  function probeWrite(characteristic) {
+    var init = new Uint8Array([0x1b, 0x40]);
+    var modes = preferredModes(characteristic);
     var i = 0;
 
-    function writeAt(offset, useMode) {
-      var end = Math.min(offset + chunkSize, bytes.length);
-      var chunk = bytes.slice(offset, end); // fresh Uint8Array
+    function attempt() {
+      if (i >= modes.length) {
+        return Promise.reject(
+          new Error('Bluetooth connected, but writing ESC/POS probe failed. Power-cycle printer BT and re-pair.')
+        );
+      }
+      var mode = modes[i++];
+      return tryWrite(characteristic, init, mode)
+        .then(function () {
+          activeBtWriteMode = mode;
+          activeBtChunkSize = 20;
+          return delay(40);
+        })
+        .catch(function () {
+          return attempt();
+        });
+    }
+
+    return attempt();
+  }
+
+  function writeChunks(characteristic, bytes) {
+    // Default ATT MTU on Android is often 23 → 20 byte payload. Start safe.
+    var chunkSize = activeBtChunkSize || 20;
+    var mode = activeBtWriteMode || preferredModes(characteristic)[0] || 'with';
+    var i = 0;
+    var flipped = false;
+
+    function writeAt(offset, useMode, size) {
+      var end = Math.min(offset + size, bytes.length);
+      var chunk = bytes.subarray(offset, end);
       return tryWrite(characteristic, chunk, useMode).then(function () {
-        return delay(useMode === 'without' ? 20 : 30);
+        // Give the printer buffer time — QP160R / Feasycom get overwhelmed easily.
+        return delay(useMode === 'without' ? 40 : 55);
       });
     }
 
     function next() {
-      if (i >= bytes.length) return Promise.resolve();
-      return writeAt(i, mode)
+      if (i >= bytes.length) {
+        activeBtWriteMode = mode;
+        activeBtChunkSize = chunkSize;
+        return Promise.resolve();
+      }
+      return writeAt(i, mode, chunkSize)
         .then(function () {
           i += chunkSize;
           return next();
@@ -352,27 +365,26 @@
           var gattFail =
             msg.indexOf('NotSupported') !== -1 ||
             msg.indexOf('GATT') !== -1 ||
-            msg.indexOf('InvalidState') !== -1;
+            msg.indexOf('InvalidState') !== -1 ||
+            msg.indexOf('NetworkError') !== -1;
 
           if (!gattFail) throw err;
 
-          // Flip write mode once, shrink chunk, retry same offset.
-          var alt = mode === 'with' ? 'without' : 'with';
-          if (mode === activeBtWriteMode || !activeBtWriteMode) {
-            mode = alt;
-            activeBtWriteMode = alt;
-            if (chunkSize > 20) chunkSize = 20;
-            return delay(60).then(function () {
-              return writeAt(i, mode).then(function () {
+          if (!flipped) {
+            flipped = true;
+            mode = mode === 'with' ? 'without' : 'with';
+            chunkSize = 20;
+            return delay(80).then(function () {
+              return writeAt(i, mode, chunkSize).then(function () {
                 i += chunkSize;
                 return next();
               });
             });
           }
 
-          if (chunkSize > 20) {
-            chunkSize = 20;
-            return delay(60).then(next);
+          if (chunkSize > 10) {
+            chunkSize = 10;
+            return delay(100).then(next);
           }
           throw err;
         });
@@ -381,7 +393,8 @@
     return next();
   }
 
-  function ensureBluetoothReady() {
+  function ensureBluetoothReady(opts) {
+    opts = opts || {};
     if (!activeBtDevice) {
       return Promise.reject(
         new Error(
@@ -394,55 +407,77 @@
       return Promise.reject(new Error('Bluetooth GATT not available on this device.'));
     }
 
+    var mustRediscover = !!opts.forceRediscover || !activeBtCharacteristic;
+
     function connect() {
-      return gatt.connected ? Promise.resolve(gatt) : gatt.connect();
+      if (gatt.connected) return Promise.resolve(gatt);
+      // Old characteristic objects are invalid after a reconnect.
+      clearBtCache();
+      mustRediscover = true;
+      return gatt.connect();
     }
 
-    return connect().then(function (server) {
-      if (activeBtCharacteristic) return activeBtCharacteristic;
-      return resolveBtCharacteristic(server).then(function (c) {
-        if (!c) {
-          throw new Error('No writable Bluetooth print characteristic found. Re-pair the printer.');
-        }
-        activeBtCharacteristic = c;
-        return c;
+    return connect()
+      .then(function (server) {
+        if (!mustRediscover && activeBtCharacteristic) return activeBtCharacteristic;
+        return resolveBtCharacteristic(server).then(function (c) {
+          if (!c) {
+            throw new Error('No writable Bluetooth print characteristic found. Re-pair the printer.');
+          }
+          activeBtCharacteristic = c;
+          return c;
+        });
+      })
+      .then(function (characteristic) {
+        if (!opts.probe && activeBtWriteMode) return characteristic;
+        return probeWrite(characteristic).then(function () {
+          return characteristic;
+        });
       });
-    });
+  }
+
+  function enqueue(task) {
+    var run = writeQueue.then(task, task);
+    // Keep queue alive even if a job fails.
+    writeQueue = run.catch(function () {});
+    return run;
   }
 
   function printBluetooth(bytes) {
-    return ensureBluetoothReady()
-      .then(function (characteristic) {
-        return writeChunks(characteristic, bytes);
-      })
-      .catch(function (err) {
-        var msg = String((err && err.name) || '') + ' ' + String((err && err.message) || err);
-        var retryable =
-          msg.indexOf('NotSupported') !== -1 ||
-          msg.indexOf('GATT') !== -1 ||
-          msg.indexOf('InvalidState') !== -1 ||
-          msg.indexOf('NetworkError') !== -1;
+    return enqueue(function () {
+      return ensureBluetoothReady({ forceRediscover: false, probe: !activeBtWriteMode })
+        .then(function (characteristic) {
+          return writeChunks(characteristic, bytes);
+        })
+        .catch(function (err) {
+          var msg = String((err && err.name) || '') + ' ' + String((err && err.message) || err);
+          var retryable =
+            msg.indexOf('NotSupported') !== -1 ||
+            msg.indexOf('GATT') !== -1 ||
+            msg.indexOf('InvalidState') !== -1 ||
+            msg.indexOf('NetworkError') !== -1 ||
+            msg.indexOf('expired') !== -1;
 
-        if (!retryable || !activeBtDevice || !activeBtDevice.gatt) throw enrichBtError(err);
+          if (!retryable || !activeBtDevice || !activeBtDevice.gatt) throw enrichBtError(err);
 
-        // Soft recovery: drop cache, reconnect, rediscover, retry once.
-        activeBtCharacteristic = null;
-        activeBtWriteMode = null;
-        try {
-          if (activeBtDevice.gatt.connected) activeBtDevice.gatt.disconnect();
-        } catch (_) {}
+          // Soft recovery: disconnect, wait, full rediscover + probe, then reprint.
+          clearBtCache();
+          try {
+            if (activeBtDevice.gatt.connected) activeBtDevice.gatt.disconnect();
+          } catch (_) {}
 
-        return delay(300)
-          .then(ensureBluetoothReady)
-          .then(function (characteristic) {
-            return probeWrite(characteristic).then(function () {
+          return delay(400)
+            .then(function () {
+              return ensureBluetoothReady({ forceRediscover: true, probe: true });
+            })
+            .then(function (characteristic) {
               return writeChunks(characteristic, bytes);
+            })
+            .catch(function (err2) {
+              throw enrichBtError(err2 || err);
             });
-          })
-          .catch(function (err2) {
-            throw enrichBtError(err2 || err);
-          });
-      });
+        });
+    });
   }
 
   function enrichBtError(err) {
@@ -453,7 +488,7 @@
       name +
         ': ' +
         message +
-        ' — Tip: forget printer here, turn printer BT off/on, then tap Connect Bluetooth again while staying on this screen.'
+        ' — Forget printer, power-cycle printer Bluetooth, tap Connect Bluetooth, then Test print immediately without leaving this screen.'
     );
   }
 
@@ -480,8 +515,7 @@
   }
 
   function forget() {
-    activeBtCharacteristic = null;
-    activeBtWriteMode = null;
+    clearBtCache();
     if (activeBtDevice && activeBtDevice.gatt && activeBtDevice.gatt.connected) {
       try {
         activeBtDevice.gatt.disconnect();

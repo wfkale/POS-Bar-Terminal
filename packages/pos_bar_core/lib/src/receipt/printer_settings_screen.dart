@@ -156,7 +156,9 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
                         await ThermalPrinterService.testPrint(venueName: venueName);
                         setState(() => _status = l10n.testPrintSent);
                       } catch (e) {
+                        final msg = e is ThermalPrinterException ? e.message : e.toString();
                         if (mounted) {
+                          setState(() => _status = msg);
                           await showReceiptPreview(
                             context: context,
                             receipt: _testReceipt(venueName),
