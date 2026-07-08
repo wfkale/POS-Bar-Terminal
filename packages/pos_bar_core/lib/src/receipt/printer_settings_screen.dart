@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../config/venue_scope.dart';
-import '../l10n/app_strings.dart';
+import '../l10n/locale_scope.dart';
 import '../theme/app_theme.dart';
 import 'bar_receipt.dart';
 import 'receipt_preview_sheet.dart';
