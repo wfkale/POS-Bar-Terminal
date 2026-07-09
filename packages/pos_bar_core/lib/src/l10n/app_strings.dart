@@ -25,6 +25,9 @@ class AppStrings {
   String get tapNameToSignIn => _sw ? 'Gusa jina lako kuingia' : 'Tap your name to sign in';
   String get barAttendant => _sw ? 'Mhudumu' : 'Bar Attendant';
   String get enterPin => _sw ? 'Weka PIN yako ya tarakimu 4' : 'Enter your 4-digit PIN';
+  String get invalidPin => _sw ? 'PIN si sahihi. Jaribu tena.' : 'Incorrect PIN. Try again.';
+  String get accountLocked => _sw ? 'Akaunti imefungwa. Jaribu tena baadaye.' : 'Account locked. Try again later.';
+  String get invalidCredentials => _sw ? 'Barua pepe au nenosiri si sahihi.' : 'Incorrect email or password.';
   String hi(String name) => _sw ? 'Habari $name' : 'Hi $name';
   String welcome(String name) => _sw ? 'Karibu, $name' : 'Welcome, $name';
   String couldNotLoadStaff(String error) =>

@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../l10n/app_strings.dart';
 import '../config/app_config.dart';
 import '../models/cashier_roster.dart';
 import '../models/menu.dart';
@@ -18,6 +19,13 @@ class ApiException implements Exception {
 
   @override
   String toString() => message;
+
+  /// User-facing copy for PIN entry screens (localized).
+  String pinLoginMessage(AppStrings l10n) {
+    if (statusCode == 423) return l10n.accountLocked;
+    if (statusCode == 401) return l10n.invalidPin;
+    return message;
+  }
 }
 
 class ApiClient {
@@ -89,12 +97,6 @@ class ApiClient {
     );
     _ensureSuccess(res);
     return BarTab.fromJson(jsonDecode(res.body)['data'] as Map<String, dynamic>);
-  }
-
-  Future<BarTabDetail> fetchTabDetail(int tabId) async {
-    final res = await http.get(Uri.parse('${config.apiBaseUrl}/tabs/$tabId'), headers: _headers);
-    _ensureSuccess(res);
-    return BarTabDetail.fromJson(jsonDecode(res.body)['data'] as Map<String, dynamic>);
   }
 
   Future<void> requestTabDeletion(int tabId, {required String reason}) async {
@@ -210,13 +212,45 @@ class ApiClient {
     _ensureSuccess(res);
   }
 
+  Future<BarTabDetail> fetchTabDetail(int tabId) async {
+    final res = await http.get(
+      Uri.parse('${config.apiBaseUrl}/tabs/$tabId'),
+      headers: _headers,
+    );
+    _ensureSuccess(res);
+    return BarTabDetail.fromJson(jsonDecode(res.body)['data'] as Map<String, dynamic>);
+  }
+
   void _ensureSuccess(http.Response res) {
     if (res.statusCode >= 200 && res.statusCode < 300) return;
+    throw ApiException(_messageFromResponse(res), statusCode: res.statusCode);
+  }
+
+  String _messageFromResponse(http.Response res) {
+    final fallback = 'Request failed (${res.statusCode})';
+    if (res.body.isEmpty) return fallback;
     try {
-      final body = jsonDecode(res.body) as Map<String, dynamic>;
-      throw ApiException(body['message']?.toString() ?? 'Request failed', statusCode: res.statusCode);
+      final decoded = jsonDecode(res.body);
+      if (decoded is! Map<String, dynamic>) return fallback;
+
+      final errors = decoded['errors'];
+      if (errors is Map<String, dynamic>) {
+        for (final entry in errors.values) {
+          if (entry is List && entry.isNotEmpty) {
+            final first = entry.first?.toString();
+            if (first != null && first.isNotEmpty) return first;
+          }
+          if (entry is String && entry.isNotEmpty) return entry;
+        }
+      }
+
+      final message = decoded['message']?.toString();
+      if (message != null && message.isNotEmpty && message != 'The given data was invalid.') {
+        return message;
+      }
     } catch (_) {
-      throw ApiException('Request failed (${res.statusCode})', statusCode: res.statusCode);
+      // keep fallback
     }
+    return fallback;
   }
 }

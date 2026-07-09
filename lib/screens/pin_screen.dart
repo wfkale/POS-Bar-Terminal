@@ -26,6 +26,7 @@ class _PinScreenState extends State<PinScreen> {
 
   Future<void> _submit() async {
     if (_pin.length < 4) return;
+    final l10n = context.l10n;
     setState(() {
       _loading = true;
       _error = null;
@@ -35,7 +36,7 @@ class _PinScreenState extends State<PinScreen> {
       widget.onSuccess(session);
     } on ApiException catch (e) {
       setState(() {
-        _error = e.message;
+        _error = e.pinLoginMessage(l10n);
         _pin = '';
       });
     } finally {
