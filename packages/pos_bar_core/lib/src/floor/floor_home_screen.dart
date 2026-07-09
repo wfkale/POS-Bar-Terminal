@@ -43,9 +43,10 @@ class FloorHomeScreen extends StatelessWidget {
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: GridView.count(
-          crossAxisCount: MediaQuery.of(context).size.width > 700 ? 3 : 2,
+          crossAxisCount: MediaQuery.of(context).size.width > 900 ? 3 : 2,
           mainAxisSpacing: 16,
           crossAxisSpacing: 16,
+          childAspectRatio: 1.15,
           children: [
             _ActionTile(
               icon: Icons.receipt_long,
@@ -125,11 +126,11 @@ class _ActionTile extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(icon, size: 32, color: AppTheme.accent),
+              Icon(icon, size: 40, color: AppTheme.accent),
               const Spacer(),
-              Text(label, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-              const SizedBox(height: 4),
-              Text(subtitle, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
+              Text(label, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 6),
+              Text(subtitle, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14)),
             ],
           ),
         ),

@@ -59,6 +59,20 @@ class AppStrings {
   String get addedToTab => _sw ? 'Imeongezwa kwenye tab' : 'Added to tab';
   String get viewTab => _sw ? 'Angalia tab' : 'View tab';
   String get addItems => _sw ? 'Ongeza bidhaa' : 'Add items';
+  String get searchItems => _sw ? 'Tafuta bidhaa' : 'Search items';
+  String get noItemsFound => _sw ? 'Hakuna bidhaa' : 'No items found';
+  String get tapToAddHint => _sw ? 'Gusa bidhaa kuongeza kwenye kikapu' : 'Tap an item to add to cart';
+  String get clearCart => _sw ? 'Futa' : 'Clear';
+
+  String get tabDetails => _sw ? 'Maelezo ya tab' : 'Tab details';
+  String get sendToBartender => _sw ? 'Tuma kwa bartenda' : 'Send to bartender';
+  String get cancelTab => _sw ? 'Ghairi tab' : 'Cancel tab';
+  String get cancelTabReason => _sw ? 'Sababu ya kughairi tab' : 'Reason for cancelling tab';
+  String get tabSentToBartender => _sw ? 'Tab imetumwa kwa bartenda' : 'Tab sent to bartender';
+  String get tabCancelRequested => _sw ? 'Ombi la kughairi tab limewasilishwa' : 'Tab cancellation requested';
+  String get noDraftOrdersOnTab => _sw ? 'Hakuna agizo la tab linalosubiri' : 'No pending tab orders';
+  String get draftOrders => _sw ? 'Agizo zinazosubiri' : 'Pending orders';
+  String get sentOrders => _sw ? 'Agizo zilizotumwa' : 'Sent orders';
 
   String get tabsOpened => _sw ? 'Tab Zilizofunguliwa' : 'Tabs Opened';
   String get ordersCreated => _sw ? 'Agizo Zilizoundwa' : 'Orders Created';
@@ -120,15 +134,6 @@ class AppStrings {
   String get deletionReason => _sw ? 'Sababu ya kufuta' : 'Reason for deletion';
   String get deletionPending => _sw ? 'Inasubiri idhini' : 'Pending approval';
   String get deletionRequested => _sw ? 'Ombi la kufuta limewasilishwa' : 'Deletion request submitted';
-  String get tabDetails => _sw ? 'Maelezo ya tab' : 'Tab details';
-  String get sendToBartender => _sw ? 'Tuma kwa bartenda' : 'Send to bartender';
-  String get cancelTab => _sw ? 'Ghairi tab' : 'Cancel tab';
-  String get cancelTabReason => _sw ? 'Sababu ya kughairi tab' : 'Reason for cancelling tab';
-  String get tabSentToBartender => _sw ? 'Tab imetumwa kwa bartenda' : 'Tab sent to bartender';
-  String get tabCancelRequested => _sw ? 'Ombi la kughairi tab limewasilishwa' : 'Tab cancellation requested';
-  String get noDraftOrdersOnTab => _sw ? 'Hakuna agizo la tab linalosubiri' : 'No pending tab orders';
-  String get draftOrders => _sw ? 'Agizo zinazosubiri' : 'Pending orders';
-  String get sentOrders => _sw ? 'Agizo zilizotumwa' : 'Sent orders';
   String get payQueue => _sw ? 'Foleni ya malipo' : 'Pay queue';
   String get floorOps => _sw ? 'Shughuli za sakafu' : 'Floor';
 

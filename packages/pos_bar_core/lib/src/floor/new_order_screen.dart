@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:pos_bar_core/pos_bar_core.dart';
 
+import 'widgets/order_menu_widgets.dart';
+
 enum _OrderSubmitAction { addToTab, sendToBartender, printBill, sendAndPrint }
 
 class NewOrderScreen extends StatefulWidget {
@@ -24,7 +26,10 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
   late Future<List<BarTab>> _tabsFuture;
   final _cart = <MenuItem, int>{};
   int? _selectedTabId;
+  int _categoryIndex = 0;
   bool _busy = false;
+  bool _searchOpen = false;
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -37,6 +42,30 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
   }
 
   double get _total => _cart.entries.fold(0.0, (sum, e) => sum + e.key.sellPrice * e.value);
+
+  void _addItem(MenuItem item) => setState(() => _cart[item] = (_cart[item] ?? 0) + 1);
+
+  void _removeItem(MenuItem item) => setState(() {
+        final q = (_cart[item] ?? 1) - 1;
+        if (q <= 0) {
+          _cart.remove(item);
+        } else {
+          _cart[item] = q;
+        }
+      });
+
+  void _clearCart() => setState(() => _cart.clear());
+
+  List<MenuItem> _visibleItems(List<MenuCategory> categories) {
+    if (categories.isEmpty) return [];
+    final safeIndex = _categoryIndex.clamp(0, categories.length - 1);
+    var items = categories[safeIndex].items;
+    final q = _searchQuery.trim().toLowerCase();
+    if (q.isNotEmpty) {
+      items = categories.expand((c) => c.items).where((i) => i.name.toLowerCase().contains(q)).toList();
+    }
+    return items;
+  }
 
   Future<String?> _tableLabelForTab(int tabId) async {
     final tabs = await widget.api.fetchOpenTabs();
@@ -104,151 +133,139 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
     );
   }
 
-  Widget _busyOrLabel(String label) {
-    if (_busy) {
-      return const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2));
-    }
-    return Text(label);
+  Widget? _buildTabPicker(AppStrings l10n) {
+    if (widget.type != 'tab') return null;
+    return FutureBuilder<List<BarTab>>(
+      future: _tabsFuture,
+      builder: (context, tabSnap) {
+        if (!tabSnap.hasData) {
+          return const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2));
+        }
+        final tabs = tabSnap.data!;
+        return PopupMenuButton<int>(
+          tooltip: l10n.selectTab,
+          initialValue: _selectedTabId,
+          onSelected: (v) => setState(() => _selectedTabId = v),
+          itemBuilder: (context) => tabs
+              .map(
+                (t) => PopupMenuItem(
+                  value: t.id,
+                  child: Text('${t.customerName}${t.tableLabel != null ? ' · ${t.tableLabel}' : ''}'),
+                ),
+              )
+              .toList(),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: _selectedTabId != null ? AppTheme.accent.withOpacity(0.2) : AppTheme.surfaceLight,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: _selectedTabId != null ? AppTheme.accent : AppTheme.textSecondary),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.tab, size: 20),
+                const SizedBox(width: 6),
+                Text(
+                  _selectedTabId == null
+                      ? l10n.selectTab
+                      : tabs.where((t) => t.id == _selectedTabId).map((t) => t.customerName).firstOrNull ?? l10n.selectTab,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                const Icon(Icons.arrow_drop_down),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final currency = currencyFormat;
     final isTab = widget.type == 'tab';
+
     return Scaffold(
-      appBar: AppBar(
-        title: Text(isTab ? l10n.tabOrder : l10n.cashOrder),
-        actions: const [FloorAppBarActions()],
-      ),
-      body: Row(
-        children: [
-          Expanded(
-            flex: 3,
-            child: FutureBuilder<List<MenuCategory>>(
-              future: _menuFuture,
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-                return ListView(
-                  padding: const EdgeInsets.all(16),
+      body: FutureBuilder<List<MenuCategory>>(
+        future: _menuFuture,
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator(color: AppTheme.accent));
+          }
+          if (snapshot.hasError) {
+            return Center(child: Text('${snapshot.error}'));
+          }
+
+          final categories = snapshot.data!;
+          if (categories.isEmpty) {
+            return Center(child: Text(l10n.noItemsFound));
+          }
+
+          final safeIndex = _categoryIndex.clamp(0, categories.length - 1);
+          final category = categories[safeIndex];
+          final categoryColor = MenuCategoryColors.forIndex(safeIndex);
+          final items = _visibleItems(categories);
+
+          return Column(
+            children: [
+              OrderTopBar(
+                title: isTab ? l10n.tabOrder : l10n.cashOrder,
+                categoryName: _searchQuery.isNotEmpty ? l10n.searchItems : category.name,
+                categoryColor: categoryColor,
+                onBack: () => Navigator.pop(context),
+                searchOpen: _searchOpen,
+                searchQuery: _searchQuery,
+                onSearchToggle: () => setState(() {
+                  _searchOpen = !_searchOpen;
+                  if (!_searchOpen) _searchQuery = '';
+                }),
+                onSearchChanged: (v) => setState(() => _searchQuery = v),
+                tabPicker: _buildTabPicker(l10n),
+              ),
+              Expanded(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    if (isTab)
-                      FutureBuilder<List<BarTab>>(
-                        future: _tabsFuture,
-                        builder: (context, tabSnap) {
-                          if (!tabSnap.hasData) return const LinearProgressIndicator();
-                          return DropdownButtonFormField<int>(
-                            value: _selectedTabId,
-                            decoration: InputDecoration(labelText: l10n.selectTab),
-                            items: tabSnap.data!
-                                .map((t) => DropdownMenuItem(value: t.id, child: Text('${t.customerName} (${t.tableLabel ?? '—'})')))
-                                .toList(),
-                            onChanged: (v) => setState(() => _selectedTabId = v),
-                          );
-                        },
+                    OrderCartPanel(
+                      cart: _cart,
+                      total: _total,
+                      busy: _busy,
+                      isTab: isTab,
+                      onIncrement: _addItem,
+                      onDecrement: _removeItem,
+                      onClear: _clearCart,
+                      onAddToTab: () => _submit(_OrderSubmitAction.addToTab),
+                      onSendToBartender: () => _submit(_OrderSubmitAction.sendToBartender),
+                      onPrintBill: () => _submit(_OrderSubmitAction.printBill),
+                      onSendAndPrint: () => _submit(_OrderSubmitAction.sendAndPrint),
+                      onViewTab: _viewTab,
+                      showViewTab: _selectedTabId != null,
+                    ),
+                    Expanded(
+                      child: ColoredBox(
+                        color: AppTheme.background,
+                        child: ProductGrid(
+                          items: items,
+                          cart: _cart,
+                          onAdd: _addItem,
+                          onRemove: _removeItem,
+                          emptyMessage: _searchQuery.isNotEmpty ? l10n.noItemsFound : null,
+                        ),
                       ),
-                    ...snapshot.data!.expand((cat) sync* {
-                      yield Padding(
-                        padding: const EdgeInsets.only(top: 16, bottom: 8),
-                        child: Text(cat.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppTheme.accent)),
-                      );
-                      for (final item in cat.items) {
-                        yield ListTile(
-                          title: Text(item.name),
-                          subtitle: Text(currency.format(item.sellPrice)),
-                          trailing: _cart[item] != null
-                              ? Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    IconButton(onPressed: () => setState(() {
-                                          final q = (_cart[item] ?? 1) - 1;
-                                          if (q <= 0) {
-                                            _cart.remove(item);
-                                          } else {
-                                            _cart[item] = q;
-                                          }
-                                        }), icon: const Icon(Icons.remove)),
-                                    Text('${_cart[item]}'),
-                                    IconButton(onPressed: () => setState(() => _cart[item] = (_cart[item] ?? 0) + 1), icon: const Icon(Icons.add)),
-                                  ],
-                                )
-                              : IconButton(onPressed: () => setState(() => _cart[item] = 1), icon: const Icon(Icons.add_circle_outline)),
-                        );
-                      }
-                    }),
-                  ],
-                );
-              },
-            ),
-          ),
-          Container(
-            width: 300,
-            color: AppTheme.surface,
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(l10n.cart, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-                const SizedBox(height: 12),
-                Expanded(
-                  child: ListView(
-                    children: _cart.entries
-                        .map((e) => ListTile(
-                              dense: true,
-                              title: Text('${e.value}× ${e.key.name}'),
-                              trailing: Text(currency.format(e.key.sellPrice * e.value)),
-                            ))
-                        .toList(),
-                  ),
-                ),
-                Text('${l10n.total}: ${currency.format(_total)}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 16),
-                if (isTab) ...[
-                  FilledButton(
-                    onPressed: _busy || _cart.isEmpty ? null : () => _submit(_OrderSubmitAction.addToTab),
-                    child: _busyOrLabel(l10n.addToTab),
-                  ),
-                  const SizedBox(height: 8),
-                  OutlinedButton.icon(
-                    onPressed: _busy || _cart.isEmpty ? null : () => _submit(_OrderSubmitAction.sendToBartender),
-                    icon: const Icon(Icons.send, size: 18),
-                    label: Text(l10n.sendToBartender),
-                  ),
-                  const SizedBox(height: 8),
-                  OutlinedButton.icon(
-                    onPressed: _busy || _cart.isEmpty ? null : () => _submit(_OrderSubmitAction.printBill),
-                    icon: const Icon(Icons.print, size: 18),
-                    label: Text(l10n.printBill),
-                  ),
-                  const SizedBox(height: 8),
-                  OutlinedButton(
-                    onPressed: _busy || _cart.isEmpty ? null : () => _submit(_OrderSubmitAction.sendAndPrint),
-                    child: Text(l10n.sendAndPrintBill),
-                  ),
-                  if (_selectedTabId != null) ...[
-                    const SizedBox(height: 8),
-                    TextButton.icon(
-                      onPressed: _busy ? null : _viewTab,
-                      icon: const Icon(Icons.open_in_new, size: 18),
-                      label: Text(l10n.viewTab),
                     ),
                   ],
-                ] else ...[
-                  FilledButton(
-                    onPressed: _busy || _cart.isEmpty ? null : () => _submit(_OrderSubmitAction.sendAndPrint),
-                    child: _busyOrLabel(l10n.sendAndPrintBill),
-                  ),
-                  const SizedBox(height: 8),
-                  OutlinedButton.icon(
-                    onPressed: _busy || _cart.isEmpty ? null : () => _submit(_OrderSubmitAction.sendToBartender),
-                    icon: const Icon(Icons.send, size: 18),
-                    label: Text(l10n.sendToBartender),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ],
+                ),
+              ),
+              if (_searchQuery.isEmpty)
+                CategoryTabBar(
+                  categories: categories,
+                  selectedIndex: safeIndex,
+                  onSelected: (i) => setState(() => _categoryIndex = i),
+                ),
+            ],
+          );
+        },
       ),
     );
   }
