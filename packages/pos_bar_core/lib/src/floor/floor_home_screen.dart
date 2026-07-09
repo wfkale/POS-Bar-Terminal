@@ -20,6 +20,11 @@ class FloorHomeScreen extends StatelessWidget {
   final VoidCallback? onLogout;
   final List<Widget> extraAppBarActions;
 
+  static const _itemCount = 5;
+  static const _padding = 16.0;
+  static const _spacing = 12.0;
+  static const _minTileHeight = 84.0;
+
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
@@ -34,70 +39,122 @@ class FloorHomeScreen extends StatelessWidget {
       ...extraAppBarActions,
       if (onLogout != null) IconButton(onPressed: onLogout, icon: const Icon(Icons.logout)),
     ];
+
+    final tiles = [
+      _ActionTile(
+        icon: Icons.receipt_long,
+        label: l10n.cashOrder,
+        subtitle: l10n.payAtCounter,
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => NewOrderScreen(api: api, type: 'cash')),
+        ),
+      ),
+      _ActionTile(
+        icon: Icons.tab,
+        label: l10n.tabOrder,
+        subtitle: l10n.addToOpenTab,
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => NewOrderScreen(api: api, type: 'tab')),
+        ),
+      ),
+      _ActionTile(
+        icon: Icons.person_add_alt_1,
+        label: l10n.newTab,
+        subtitle: l10n.openCustomerTab,
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => OpenTabsScreen(api: api, openCreate: true)),
+        ),
+      ),
+      _ActionTile(
+        icon: Icons.list_alt,
+        label: l10n.openTabs,
+        subtitle: l10n.viewRunningTabs,
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => OpenTabsScreen(api: api)),
+        ),
+      ),
+      _ActionTile(
+        icon: Icons.insights,
+        label: l10n.myPerformance,
+        subtitle: l10n.todaysMetrics,
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => MetricsScreen(api: api)),
+        ),
+      ),
+    ];
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: AppTheme.surface,
         title: Text(l10n.welcome(session.staff.name)),
         actions: [FloorAppBarActions(trailing: trailing)],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: GridView.count(
-          crossAxisCount: MediaQuery.of(context).size.width > 900 ? 3 : 2,
-          mainAxisSpacing: 16,
-          crossAxisSpacing: 16,
-          childAspectRatio: 1.15,
-          children: [
-            _ActionTile(
-              icon: Icons.receipt_long,
-              label: l10n.cashOrder,
-              subtitle: l10n.payAtCounter,
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => NewOrderScreen(api: api, type: 'cash')),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final gridWidth = constraints.maxWidth - _padding * 2;
+          final gridHeight = constraints.maxHeight - _padding * 2;
+          final layout = _fitGridLayout(width: gridWidth, height: gridHeight);
+
+          return Padding(
+            padding: const EdgeInsets.all(_padding),
+            child: SizedBox(
+              width: gridWidth,
+              height: gridHeight,
+              child: GridView.count(
+                crossAxisCount: layout.columns,
+                mainAxisSpacing: _spacing,
+                crossAxisSpacing: _spacing,
+                childAspectRatio: layout.aspectRatio,
+                physics: const NeverScrollableScrollPhysics(),
+                children: tiles,
               ),
             ),
-            _ActionTile(
-              icon: Icons.tab,
-              label: l10n.tabOrder,
-              subtitle: l10n.addToOpenTab,
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => NewOrderScreen(api: api, type: 'tab')),
-              ),
-            ),
-            _ActionTile(
-              icon: Icons.person_add_alt_1,
-              label: l10n.newTab,
-              subtitle: l10n.openCustomerTab,
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => OpenTabsScreen(api: api, openCreate: true)),
-              ),
-            ),
-            _ActionTile(
-              icon: Icons.list_alt,
-              label: l10n.openTabs,
-              subtitle: l10n.viewRunningTabs,
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => OpenTabsScreen(api: api)),
-              ),
-            ),
-            _ActionTile(
-              icon: Icons.insights,
-              label: l10n.myPerformance,
-              subtitle: l10n.todaysMetrics,
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => MetricsScreen(api: api)),
-              ),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
+
+  /// Picks column count and aspect ratio so every tile fits in the viewport.
+  static _GridLayout _fitGridLayout({required double width, required double height}) {
+    _GridLayout? best;
+
+    for (var cols = 2; cols <= _itemCount; cols++) {
+      final rows = (_itemCount / cols).ceil();
+      final tileWidth = (width - _spacing * (cols - 1)) / cols;
+      final tileHeight = (height - _spacing * (rows - 1)) / rows;
+      if (tileWidth <= 0 || tileHeight < _minTileHeight) continue;
+
+      final candidate = _GridLayout(
+        columns: cols,
+        aspectRatio: tileWidth / tileHeight,
+        tileHeight: tileHeight,
+      );
+
+      if (best == null || candidate.tileHeight > best.tileHeight) {
+        best = candidate;
+      }
+    }
+
+    return best ?? const _GridLayout(columns: 2, aspectRatio: 1.1, tileHeight: 120);
+  }
+}
+
+class _GridLayout {
+  const _GridLayout({
+    required this.columns,
+    required this.aspectRatio,
+    required this.tileHeight,
+  });
+
+  final int columns;
+  final double aspectRatio;
+  final double tileHeight;
 }
 
 class _ActionTile extends StatelessWidget {
@@ -115,26 +172,46 @@ class _ActionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: AppTheme.surface,
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(icon, size: 40, color: AppTheme.accent),
-              const Spacer(),
-              Text(label, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 6),
-              Text(subtitle, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14)),
-            ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final h = constraints.maxHeight;
+        final pad = (h * 0.12).clamp(10.0, 20.0);
+        final iconSize = (h * 0.28).clamp(24.0, 40.0);
+        final titleSize = (h * 0.13).clamp(14.0, 20.0);
+        final subtitleSize = (h * 0.095).clamp(11.0, 14.0);
+
+        return Material(
+          color: AppTheme.surface,
+          borderRadius: BorderRadius.circular(16),
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(16),
+            child: Padding(
+              padding: EdgeInsets.all(pad),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(icon, size: iconSize, color: AppTheme.accent),
+                  const Spacer(),
+                  Text(
+                    label,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: titleSize, fontWeight: FontWeight.w800),
+                  ),
+                  SizedBox(height: pad * 0.3),
+                  Text(
+                    subtitle,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: AppTheme.textSecondary, fontSize: subtitleSize),
+                  ),
+                ],
+              ),
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
