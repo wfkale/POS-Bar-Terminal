@@ -28,6 +28,7 @@ class BarReceipt {
     this.paymentMethod,
     this.tillLabel,
     this.notes,
+    this.lipaNumbers = const [],
   });
 
   /// `proforma` (bill) or `final` (paid receipt).
@@ -58,8 +59,19 @@ class BarReceipt {
   final String? paymentMethod;
   final String? tillLabel;
   final String? notes;
+  final List<BarReceiptLipa> lipaNumbers;
 
   bool get isProforma => kind == 'proforma';
+}
+
+class BarReceiptLipa {
+  const BarReceiptLipa({
+    required this.provider,
+    required this.number,
+  });
+
+  final String provider;
+  final String number;
 }
 
 class BarReceiptItem {

@@ -15,6 +15,8 @@ class ReceiptPrintService {
     required String billNumber,
     String? tableLabel,
     BuildContext? previewContext,
+    bool showPreviewOnSuccess = false,
+    bool showPreviewOnMissingPrinter = true,
   }) async {
     final receipt = ReceiptBuilder.proforma(
       order: order,
@@ -22,7 +24,35 @@ class ReceiptPrintService {
       billNumber: billNumber,
       tableLabel: tableLabel,
     );
-    await _printOrPreview(receipt, previewContext, title: 'Bill preview');
+    await _printOrPreview(
+      receipt,
+      previewContext,
+      title: 'Bill preview',
+      showPreviewOnSuccess: showPreviewOnSuccess,
+      showPreviewOnMissingPrinter: showPreviewOnMissingPrinter,
+    );
+  }
+
+  static Future<void> previewProformaBill({
+    required BuildContext context,
+    required BarOrder order,
+    required VenueConfig venue,
+    required String billNumber,
+    String? tableLabel,
+    String? closeLabel,
+  }) async {
+    final receipt = ReceiptBuilder.proforma(
+      order: order,
+      venue: venue,
+      billNumber: billNumber,
+      tableLabel: tableLabel,
+    );
+    await showReceiptPreview(
+      context: context,
+      receipt: receipt,
+      title: 'Bill preview',
+      closeLabel: closeLabel,
+    );
   }
 
   static Future<void> printFinalReceipt({
@@ -47,10 +77,12 @@ class ReceiptPrintService {
     BarReceipt receipt,
     BuildContext? previewContext, {
     required String title,
+    bool showPreviewOnSuccess = false,
+    bool showPreviewOnMissingPrinter = true,
   }) async {
     final paired = await ThermalPrinterService.getPairedPrinter();
     if (paired == null) {
-      if (previewContext != null && previewContext.mounted) {
+      if (showPreviewOnMissingPrinter && previewContext != null && previewContext.mounted) {
         await showReceiptPreview(
           context: previewContext,
           receipt: receipt,
@@ -64,8 +96,14 @@ class ReceiptPrintService {
 
     try {
       await ThermalPrinterService.printReceipt(receipt);
+      if (showPreviewOnSuccess && previewContext != null && previewContext.mounted) {
+        await showReceiptPreview(
+          context: previewContext,
+          receipt: receipt,
+          title: title,
+        );
+      }
     } catch (e) {
-      // Always show what we tried to print so operators can diagnose silent hardware issues.
       if (previewContext != null && previewContext.mounted) {
         await showReceiptPreview(
           context: previewContext,

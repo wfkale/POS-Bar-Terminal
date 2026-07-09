@@ -82,6 +82,9 @@ class ReceiptBuilder {
       tableLabel: tableLabel,
       paymentMethod: paymentMethod,
       tillLabel: tillLabel,
+      lipaNumbers: venue.lipaNumbers
+          .map((l) => BarReceiptLipa(provider: l.provider, number: l.number))
+          .toList(),
     );
   }
 

@@ -128,6 +128,7 @@ class AppStrings {
   String get completeWithReceipt => _sw ? 'KAMILISHA NA RISITI' : 'COMPLETE WITH RECEIPT';
   String get completeNoReceipt => _sw ? 'KAMILISHA BILA RISITI' : 'COMPLETE NO RECEIPT';
   String get choosePayment => _sw ? 'Chagua njia ya malipo' : 'Choose payment method';
+  String get printBill => _sw ? 'Chapisha bili' : 'Print bill';
   String get receiptPrinted => _sw ? 'Risiti imechapishwa' : 'Receipt printed';
   String get billPrintFailed => _sw
       ? 'Malipo yamefanikiwa, lakini uchapishaji wa risiti umeshindikana'

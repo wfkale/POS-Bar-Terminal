@@ -1,3 +1,18 @@
+class LipaNumber {
+  const LipaNumber({
+    required this.provider,
+    required this.number,
+  });
+
+  final String provider;
+  final String number;
+
+  factory LipaNumber.fromJson(Map<String, dynamic> json) => LipaNumber(
+        provider: json['provider'] as String? ?? '',
+        number: json['number'] as String? ?? '',
+      );
+}
+
 class PaymentMethodOption {
   const PaymentMethodOption({
     required this.code,
@@ -30,6 +45,7 @@ class VenueConfig {
     this.logoUrl,
     required this.currency,
     required this.paymentMethods,
+    this.lipaNumbers = const [],
     this.taxRate = 18,
     this.address,
     this.phone,
@@ -42,6 +58,7 @@ class VenueConfig {
   final String? logoUrl;
   final String currency;
   final List<PaymentMethodOption> paymentMethods;
+  final List<LipaNumber> lipaNumbers;
   final double taxRate;
   final String? address;
   final String? phone;
@@ -61,6 +78,10 @@ class VenueConfig {
         paymentMethods: (json['payment_methods'] as List<dynamic>? ?? [])
             .map((e) => PaymentMethodOption.fromJson(e as Map<String, dynamic>))
             .toList(),
+        lipaNumbers: (json['lipa_numbers'] as List<dynamic>? ?? [])
+            .map((e) => LipaNumber.fromJson(e as Map<String, dynamic>))
+            .where((l) => l.provider.isNotEmpty && l.number.isNotEmpty)
+            .toList(),
       );
 
   VenueConfig copyWith({
@@ -68,6 +89,7 @@ class VenueConfig {
     String? logoUrl,
     String? currency,
     List<PaymentMethodOption>? paymentMethods,
+    List<LipaNumber>? lipaNumbers,
     double? taxRate,
     String? address,
     String? phone,
@@ -80,6 +102,7 @@ class VenueConfig {
         logoUrl: logoUrl ?? this.logoUrl,
         currency: currency ?? this.currency,
         paymentMethods: paymentMethods ?? this.paymentMethods,
+        lipaNumbers: lipaNumbers ?? this.lipaNumbers,
         taxRate: taxRate ?? this.taxRate,
         address: address ?? this.address,
         phone: phone ?? this.phone,

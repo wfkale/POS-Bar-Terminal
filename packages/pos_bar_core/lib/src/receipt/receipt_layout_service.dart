@@ -25,106 +25,106 @@ class ReceiptLayoutService {
     final time = DateFormat('HH:mm:ss').format(receipt.printedAt.toLocal());
 
     if (receipt.isProforma) {
-      lines.add(const ReceiptLine(
+      lines.add(_cline(
         '*** SYSTEM GENERATED BILL ***',
         style: ReceiptTextStyle.fine,
-        align: ReceiptAlign.center,
       ));
     } else {
-      lines.add(const ReceiptLine(
+      lines.add(_cline(
         '*** SYSTEM GENERATED RECEIPT ***',
         style: ReceiptTextStyle.fine,
-        align: ReceiptAlign.center,
       ));
     }
 
-    lines.add(ReceiptLine(
+    lines.add(_cline(
       receipt.venueName.toUpperCase(),
       style: ReceiptTextStyle.title,
-      align: ReceiptAlign.center,
     ));
 
     final location = _has(receipt.location) ? receipt.location!.trim() : 'HEAD OFFICE';
-    lines.add(ReceiptLine(
-      location.toUpperCase(),
-      style: ReceiptTextStyle.normal,
-      align: ReceiptAlign.center,
-    ));
+    lines.add(_cline(location.toUpperCase()));
 
-    lines.add(ReceiptLine('TEL: ${_field(receipt.phone)}'));
-    lines.add(ReceiptLine('TIN: ${_field(receipt.tin)}'));
-    lines.add(ReceiptLine('VRN: ${_field(receipt.vrn)}'));
-    lines.add(ReceiptLine('SERIAL NUMBER: ${_field(receipt.serialNumber)}'));
-    lines.add(ReceiptLine('UIN: ${_field(receipt.uin)}'));
+    lines.add(_cline('TEL: ${_field(receipt.phone)}'));
+    lines.add(_cline('TIN: ${_field(receipt.tin)}'));
+    lines.add(_cline('VRN: ${_field(receipt.vrn)}'));
+    lines.add(_cline('SERIAL NUMBER: ${_field(receipt.serialNumber)}'));
+    lines.add(_cline('UIN: ${_field(receipt.uin)}'));
     lines.add(const ReceiptLine(''));
 
     final customer = _has(receipt.customerName) ? receipt.customerName!.trim().toUpperCase() : 'WALK-IN CUSTOMER';
-    lines.add(ReceiptLine('CUSTOMER NAME: $customer'));
-    lines.add(ReceiptLine('CUSTOMER ID TYPE: ${_customerIdType(receipt)}'));
-    lines.add(ReceiptLine('CUSTOMER VRN: ${_field(receipt.customerVrn)}'));
+    lines.add(_cline('CUSTOMER NAME: $customer'));
+    lines.add(_cline('CUSTOMER ID TYPE: ${_customerIdType(receipt)}'));
+    lines.add(_cline('CUSTOMER VRN: ${_field(receipt.customerVrn)}'));
     lines.add(const ReceiptLine(''));
 
     if (receipt.isProforma) {
-      lines.add(ReceiptLine('BILL NUMBER: ${receipt.documentNumber}'));
+      lines.add(_cline('BILL NUMBER: ${receipt.documentNumber}'));
     } else {
-      lines.add(ReceiptLine('RECEIPT NUMBER: ${receipt.documentNumber}'));
+      lines.add(_cline('RECEIPT NUMBER: ${receipt.documentNumber}'));
     }
-    lines.add(ReceiptLine('ZNO: ${_field(receipt.zno)}'));
-    lines.add(ReceiptLine('RECEIPT DATE: $date  TIME: $time'));
+    lines.add(_cline('ZNO: ${_field(receipt.zno)}'));
+    lines.add(_cline('RECEIPT DATE: $date  TIME: $time'));
 
-    if (_has(receipt.orderNumber)) lines.add(ReceiptLine('ORDER: ${receipt.orderNumber}'));
-    if (_has(receipt.tableLabel)) lines.add(ReceiptLine('TABLE: ${receipt.tableLabel}'));
-    if (_has(receipt.staffName)) lines.add(ReceiptLine('STAFF: ${receipt.staffName}'));
-    if (_has(receipt.tillLabel)) lines.add(ReceiptLine('TILL: ${receipt.tillLabel}'));
+    if (_has(receipt.orderNumber)) lines.add(_cline('ORDER: ${receipt.orderNumber}'));
+    if (_has(receipt.tableLabel)) lines.add(_cline('TABLE: ${receipt.tableLabel}'));
+    if (_has(receipt.staffName)) lines.add(_cline('STAFF: ${receipt.staffName}'));
+    if (_has(receipt.tillLabel)) lines.add(_cline('TILL: ${receipt.tillLabel}'));
     if (!receipt.isProforma && _has(receipt.paymentMethod)) {
-      lines.add(ReceiptLine('PAYMENT: ${receipt.paymentMethod!.toUpperCase()}'));
+      lines.add(_cline('PAYMENT: ${receipt.paymentMethod!.toUpperCase()}'));
     }
 
     lines.add(const ReceiptLine(''));
     lines.addAll(_itemSection(receipt));
-    lines.add(ReceiptLine(_moneyLine('TOTAL EXCLUSIVE OF TAX', receipt.subtotal)));
-    lines.add(ReceiptLine(_moneyLine('DISCOUNT', receipt.discount)));
-    lines.add(ReceiptLine(_moneyLine('TAX A - ${receipt.taxRate.toStringAsFixed(0)}%', receipt.taxAmount)));
-    lines.add(ReceiptLine(_moneyLine('TOTAL TAX', receipt.taxAmount)));
-    lines.add(ReceiptLine(
+    lines.add(_cline(_moneyLine('TOTAL EXCLUSIVE OF TAX', receipt.subtotal)));
+    lines.add(_cline(_moneyLine('DISCOUNT', receipt.discount)));
+    lines.add(_cline(_moneyLine('TAX A - ${receipt.taxRate.toStringAsFixed(0)}%', receipt.taxAmount)));
+    lines.add(_cline(_moneyLine('TOTAL TAX', receipt.taxAmount)));
+    lines.add(_cline(
       _moneyLine('TOTAL INCLUSIVE OF TAX', receipt.total),
       style: ReceiptTextStyle.bold,
     ));
     lines.add(const ReceiptLine(''));
 
     if (receipt.isProforma) {
-      lines.add(const ReceiptLine('PAY AT CASHIER', align: ReceiptAlign.center));
-      lines.add(const ReceiptLine('NOT A FISCAL RECEIPT', align: ReceiptAlign.center));
+      if (receipt.lipaNumbers.isNotEmpty) {
+        lines.add(_cline('MOBILE MONEY LIPA', style: ReceiptTextStyle.bold));
+        for (final lipa in receipt.lipaNumbers) {
+          lines.add(_cline('${lipa.provider.toUpperCase()}: ${lipa.number}'));
+        }
+        lines.add(const ReceiptLine(''));
+      }
+      lines.add(_cline('NOT A FISCAL RECEIPT'));
     } else {
       final code = receipt.verificationCode ?? _verificationCode(receipt);
-      lines.add(const ReceiptLine('RECEIPT VERIFICATION CODE', align: ReceiptAlign.center));
-      lines.add(ReceiptLine(code, style: ReceiptTextStyle.bold, align: ReceiptAlign.center));
+      lines.add(_cline('RECEIPT VERIFICATION CODE'));
+      lines.add(_cline(code, style: ReceiptTextStyle.bold));
     }
 
     if (_has(receipt.notes)) {
       lines.add(const ReceiptLine(''));
       for (final noteLine in _wrap(receipt.notes!.trim(), thermalWidth)) {
-        lines.add(ReceiptLine(noteLine, align: ReceiptAlign.center));
+        lines.add(_cline(noteLine));
       }
     }
 
     lines.add(const ReceiptLine(''));
     if (receipt.isProforma) {
-      lines.add(const ReceiptLine(
+      lines.add(_cline(
         '*** END OF SYSTEM GENERATED BILL ***',
         style: ReceiptTextStyle.fine,
-        align: ReceiptAlign.center,
       ));
     } else {
-      lines.add(const ReceiptLine(
+      lines.add(_cline(
         '*** END OF SYSTEM GENERATED RECEIPT ***',
         style: ReceiptTextStyle.fine,
-        align: ReceiptAlign.center,
       ));
     }
 
     return lines;
   }
+
+  static ReceiptLine _cline(String text, {ReceiptTextStyle style = ReceiptTextStyle.normal}) =>
+      ReceiptLine(text, style: style, align: ReceiptAlign.center);
 
   static List<String> buildLines(BarReceipt receipt) =>
       buildStyledLines(receipt).map((l) => l.text).toList();
@@ -163,25 +163,25 @@ class ReceiptLayoutService {
 
   static List<ReceiptLine> _itemSection(BarReceipt receipt) {
     final lines = <ReceiptLine>[
-      ReceiptLine(_rule()),
-      ReceiptLine(_columnsLine('DESCRIPTION', 'QTY', 'PRICE', 'AMOUNT'), style: ReceiptTextStyle.bold),
-      ReceiptLine(_rule()),
+      _cline(_rule()),
+      _cline(_columnsLine('DESCRIPTION', 'QTY', 'PRICE', 'AMOUNT'), style: ReceiptTextStyle.bold),
+      _cline(_rule()),
     ];
 
     for (final item in receipt.items) {
       final name = item.name.trim().isEmpty ? 'ITEM' : item.name.trim().toUpperCase();
       final detail = _itemDetailLine(item);
       if (name.length <= 14) {
-        lines.add(ReceiptLine(_itemRow(name, detail)));
+        lines.add(_cline(_itemRow(name, detail)));
       } else {
         for (final nameLine in _wrap(name, thermalWidth)) {
-          lines.add(ReceiptLine(nameLine));
+          lines.add(_cline(nameLine));
         }
-        lines.add(ReceiptLine(detail));
+        lines.add(_cline(detail));
       }
     }
 
-    lines.add(ReceiptLine(_rule()));
+    lines.add(_cline(_rule()));
     return lines;
   }
 

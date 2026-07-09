@@ -42,20 +42,32 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
       var order = await widget.api.createOrder(type: widget.type, tabId: _selectedTabId, lines: lines);
       if (sendToCashier) order = await widget.api.sendOrder(order.id);
       final bill = await widget.api.printBill(order.id);
+      final billNumber = bill['bill_number']?.toString() ?? order.orderNumber;
+      final venue = VenueScope.of(context).venue;
+
       try {
         await ReceiptPrintService.printProformaBill(
           order: order,
-          venue: VenueScope.of(context).venue,
-          billNumber: bill['bill_number']?.toString() ?? order.orderNumber,
-          previewContext: context,
+          venue: venue,
+          billNumber: billNumber,
+          showPreviewOnMissingPrinter: false,
         );
       } on ThermalPrinterException catch (e) {
-        if (mounted) {
+        if (mounted && !e.message.contains('No printer paired')) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('${l10n.billPrintFailed}: ${e.message}')),
           );
         }
       }
+
+      if (!mounted) return;
+      await ReceiptPrintService.previewProformaBill(
+        context: context,
+        order: order,
+        venue: venue,
+        billNumber: billNumber,
+        closeLabel: l10n.close,
+      );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(sendToCashier ? l10n.orderSentToCashier(order.orderNumber) : l10n.billPrinted)),

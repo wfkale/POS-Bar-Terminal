@@ -11,12 +11,16 @@ Future<void> showReceiptPreview({
   required BuildContext context,
   required BarReceipt receipt,
   String title = 'Receipt preview',
+  String? closeLabel,
 }) {
   final lines = ReceiptLayoutService.buildStyledLines(receipt);
   final text = ReceiptLayoutService.buildText(receipt);
+  final dismissLabel = closeLabel ?? 'Close';
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
+    isDismissible: true,
+    enableDrag: true,
     backgroundColor: AppTheme.surface,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
@@ -51,7 +55,7 @@ Future<void> showReceiptPreview({
                     icon: const Icon(Icons.copy, size: 20),
                   ),
                   IconButton(
-                    tooltip: 'Close',
+                    tooltip: dismissLabel,
                     onPressed: () => Navigator.pop(ctx),
                     icon: const Icon(Icons.close, size: 20),
                   ),
@@ -60,7 +64,7 @@ Future<void> showReceiptPreview({
               const SizedBox(height: 8),
               ConstrainedBox(
                 constraints: BoxConstraints(
-                  maxHeight: MediaQuery.of(ctx).size.height * 0.65,
+                  maxHeight: MediaQuery.of(ctx).size.height * 0.55,
                 ),
                 child: Container(
                   padding: const EdgeInsets.all(12),
@@ -71,13 +75,18 @@ Future<void> showReceiptPreview({
                   ),
                   child: SingleChildScrollView(
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         for (final line in lines) _PreviewLine(line: line),
                       ],
                     ),
                   ),
                 ),
+              ),
+              const SizedBox(height: 16),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: Text(dismissLabel),
               ),
             ],
           ),
@@ -133,7 +142,7 @@ class _PreviewLine extends StatelessWidget {
 
     return Text(
       line.text,
-      textAlign: line.align == ReceiptAlign.center ? TextAlign.center : TextAlign.left,
+      textAlign: TextAlign.center,
       style: style,
     );
   }
