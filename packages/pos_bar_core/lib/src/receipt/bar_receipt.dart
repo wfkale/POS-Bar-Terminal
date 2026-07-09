@@ -15,6 +15,12 @@ class BarReceipt {
     this.phone,
     this.tin,
     this.vrn,
+    this.serialNumber,
+    this.uin,
+    this.zno,
+    this.customerVrn,
+    this.verificationCode,
+    this.discount = 0,
     this.staffName,
     this.customerName,
     this.tableLabel,
@@ -39,6 +45,12 @@ class BarReceipt {
   final String? phone;
   final String? tin;
   final String? vrn;
+  final String? serialNumber;
+  final String? uin;
+  final String? zno;
+  final String? customerVrn;
+  final String? verificationCode;
+  final double discount;
   final String? staffName;
   final String? customerName;
   final String? tableLabel;

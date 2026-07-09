@@ -23,6 +23,7 @@ export 'src/theme/app_theme.dart';
 export 'src/widgets/numeric_keypad.dart';
 export 'src/receipt/bar_receipt.dart';
 export 'src/receipt/receipt_layout_service.dart';
+export 'src/receipt/receipt_line.dart';
 export 'src/receipt/receipt_builder.dart';
 export 'src/receipt/receipt_print_service.dart';
 export 'src/receipt/thermal_printer_service.dart';

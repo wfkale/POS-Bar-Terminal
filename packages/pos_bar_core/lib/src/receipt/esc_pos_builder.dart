@@ -3,37 +3,65 @@ import 'dart:typed_data';
 
 import 'bar_receipt.dart';
 import 'receipt_layout_service.dart';
+import 'receipt_line.dart';
 
 /// ESC/POS bytes for 80mm (≈72mm print area) thermal printers.
 class EscPosBuilder {
-  /// Initialize + text + feed + partial cut.
   static Uint8List build(BarReceipt receipt) {
-    final text = ReceiptLayoutService.buildText(receipt);
     final out = BytesBuilder();
 
     // ESC @ — initialize
     out.add([0x1B, 0x40]);
-    // ESC a 0 — left align
-    out.add([0x1B, 0x61, 0x00]);
-    // ESC 3 n — line spacing
-    out.add([0x1B, 0x33, 0x18]);
-    // ESC M 0 — Font A
-    out.add([0x1B, 0x4D, 0x00]);
-    // ESC t 0 — code page PC437 (widely supported ASCII-compatible)
-    out.add([0x1B, 0x74, 0x00]);
+    out.add([0x1B, 0x33, 0x18]); // line spacing
+    out.add([0x1B, 0x74, 0x00]); // code page PC437
 
-    out.add(_encodeAsciiSafe(text));
+    for (final line in ReceiptLayoutService.buildStyledLines(receipt)) {
+      out.add(_encodeLine(line));
+    }
 
-    // Feed a few lines so the cut is below the last text
     out.add([0x0A, 0x0A, 0x0A, 0x0A]);
-    // GS V 1 — partial cut (safer than full cut on many 80mm printers)
-    out.add([0x1D, 0x56, 0x01]);
+    out.add([0x1D, 0x56, 0x01]); // partial cut
 
     return out.toBytes();
   }
 
-  /// ESC/POS printers typically expect single-byte encodings.
-  /// Map anything outside Latin-1 printable to '?' so latin1.encode never throws.
+  static List<int> _encodeLine(ReceiptLine line) {
+    final out = BytesBuilder();
+
+    // Alignment
+    out.add([0x1B, 0x61, line.align == ReceiptAlign.center ? 0x01 : 0x00]);
+
+    // Style
+    switch (line.style) {
+      case ReceiptTextStyle.fine:
+        out.add([0x1B, 0x4D, 0x01]); // Font B (smaller)
+        out.add([0x1D, 0x21, 0x00]);
+        out.add([0x1B, 0x45, 0x00]); // bold off
+      case ReceiptTextStyle.normal:
+        out.add([0x1B, 0x4D, 0x00]); // Font A
+        out.add([0x1D, 0x21, 0x00]);
+        out.add([0x1B, 0x45, 0x00]);
+      case ReceiptTextStyle.bold:
+        out.add([0x1B, 0x4D, 0x00]);
+        out.add([0x1D, 0x21, 0x00]);
+        out.add([0x1B, 0x45, 0x01]); // bold on
+      case ReceiptTextStyle.title:
+        out.add([0x1B, 0x4D, 0x00]);
+        out.add([0x1D, 0x21, 0x11]); // double width + height
+        out.add([0x1B, 0x45, 0x01]);
+    }
+
+    out.add(_encodeAsciiSafe('${line.text}\n'));
+
+    // Reset to normal after title/bold/fine so next line starts clean.
+    out.add([0x1B, 0x4D, 0x00]);
+    out.add([0x1D, 0x21, 0x00]);
+    out.add([0x1B, 0x45, 0x00]);
+    out.add([0x1B, 0x61, 0x00]);
+
+    return out.toBytes();
+  }
+
   static List<int> _encodeAsciiSafe(String text) {
     final buf = StringBuffer();
     for (final unit in text.runes) {
