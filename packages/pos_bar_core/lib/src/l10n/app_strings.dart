@@ -131,9 +131,10 @@ class AppStrings {
   String get choosePayment => _sw ? 'Chagua njia ya malipo' : 'Choose payment method';
   String get printBill => _sw ? 'Chapisha bili' : 'Print bill';
   String get receiptPrinted => _sw ? 'Risiti imechapishwa' : 'Receipt printed';
-  String get billPrintFailed => _sw
-      ? 'Malipo yamefanikiwa, lakini uchapishaji wa risiti umeshindikana'
-      : 'Payment succeeded, but receipt printing failed';
+  String get billPrintFailed => _sw ? 'Bili haikuweza kuchapishwa' : 'Bill could not be printed';
+  String get receiptPrintFailed => _sw
+      ? 'Malipo yamekamilika, lakini risiti haikuchapishwa'
+      : 'Payment completed, but receipt printing failed';
   String get printerNeeded => _sw
       ? 'Unganisha printa kwenye Mipangilio ya printa kwanza'
       : 'Pair a printer in Printer settings first';

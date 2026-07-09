@@ -52,10 +52,8 @@ class ReceiptLayoutService {
 
     lines.add(const ReceiptLine(''));
     lines.addAll(_itemSection(receipt, centered: true));
-    lines.add(_cline(_moneyLine('TOTAL EXCL. TAX', receipt.subtotal)));
-    lines.add(_cline(_moneyLine('VAT ${receipt.taxRate.toStringAsFixed(0)}%', receipt.taxAmount)));
     lines.add(_cline(
-      _moneyLine('TOTAL INCL. TAX', receipt.total),
+      _moneyLine('TOTAL', receipt.total),
       style: ReceiptTextStyle.bold,
     ));
     lines.add(_cline(_rule()));
