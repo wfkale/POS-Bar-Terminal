@@ -6,7 +6,7 @@ class AppStrings {
   bool get _sw => _code == 'sw';
 
   String get appTitleFloor => _sw ? 'POS Bar — Sakafu' : 'POS Bar — Floor';
-  String get appTitleCashier => _sw ? 'POS Bar — Keshia' : 'POS Bar — Cashier';
+  String get appTitleStaff => _sw ? 'POS Bar — Wafanyakazi' : 'POS Bar — Staff';
 
   String get retry => _sw ? 'Jaribu tena' : 'Retry';
   String get cancel => _sw ? 'Ghairi' : 'Cancel';
@@ -48,7 +48,7 @@ class AppStrings {
   String get noTableLabel => _sw ? 'Hakuna lebo ya meza' : 'No table label';
   String get selectTabFirst => _sw ? 'Chagua tab kwanza' : 'Select a tab first';
   String orderSentToCashier(String orderNo) =>
-      _sw ? 'Agizo $orderNo limetumwa kwa keshia' : 'Order $orderNo sent to cashier';
+      _sw ? 'Agizo $orderNo limetumwa kwa bartenda' : 'Order $orderNo sent to bartender';
   String get billPrinted => _sw ? 'Bili imechapishwa' : 'Bill printed';
   String get selectTab => _sw ? 'Chagua tab' : 'Select tab';
   String get sendAndPrintBill => _sw ? 'Tuma & Chapisha Bili' : 'Send & Print Bill';
@@ -61,11 +61,14 @@ class AppStrings {
   String get billsPrinted => _sw ? 'Bili Zilizochapishwa' : 'Bills Printed';
   String get voids => _sw ? 'Kughairi' : 'Voids';
 
-  // Cashier
+  // Bartender / till
   String get tapTillToSignIn => _sw ? 'Chagua till yako kuingia' : 'Select your till to sign in';
-  String get cashierTerminal => _sw ? 'Keshia Terminal' : 'Cashier Terminal';
+  String get selectYourTill => _sw ? 'Chagua till' : 'Select your till';
+  String get bartenderTerminal => _sw ? 'Bartenda Terminal' : 'Bartender Terminal';
   String get tillsRegisters => _sw ? 'Till / Kaunta' : 'Tills / Registers';
-  String get cashiersOnDuty => _sw ? 'Wakeshia walio kazini' : 'Cashiers on duty';
+  String get bartendersOnDuty => _sw ? 'Bartenda walio kazini' : 'Bartenders on duty';
+  String tillInUse(String name) => _sw ? 'Till inatumika na $name' : 'Till in use by $name';
+  String get noTillsConfigured => _sw ? 'Hakuna till zilizosanidiwa' : 'No tills configured';
   String shiftOpen(String name) => _sw ? 'Shift imefunguliwa · $name' : 'Shift open · $name';
   String sinceTime(String time) => _sw ? 'Tangu $time' : 'Since $time';
   String signInToTill(String till) => _sw ? 'Ingia kwenye $till' : 'Sign in to $till';
@@ -74,7 +77,7 @@ class AppStrings {
   String get enterPinOpenShift => _sw ? 'Weka PIN kufungua shift' : 'Enter PIN to open shift';
   String get notOnShift => _sw ? 'Hayuko kwenye shift' : 'Not on shift';
   String onTill(String till, String time) => _sw ? 'Yu $till · $time' : 'On $till · $time';
-  String get cashierQueue => _sw ? 'Foleni ya Keshia' : 'Cashier Queue';
+  String get bartenderQueue => _sw ? 'Foleni ya Bartenda' : 'Bartender Queue';
   String get closeShift => _sw ? 'Funga shift' : 'Close shift';
   String get queueClear => _sw ? 'Foleni ni tupu' : 'Queue is clear';
   String get waitingOrders => _sw ? 'Inasubiri maagizo kutoka baa…' : 'Waiting for bar orders…';
@@ -96,7 +99,15 @@ class AppStrings {
   String get clear => _sw ? 'Futa' : 'Clear';
   String couldNotLoadRoster(String error) =>
       _sw ? 'Imeshindwa kupakia orodha\n$error' : 'Could not load roster\n$error';
-  String get cashierRole => _sw ? 'Keshia' : 'Cashier';
+  String get bartenderRole => _sw ? 'Bartenda' : 'Bartender';
+  @Deprecated('Use bartenderRole')
+  String get cashierRole => bartenderRole;
+  @Deprecated('Use bartenderTerminal')
+  String get cashierTerminal => bartenderTerminal;
+  @Deprecated('Use bartendersOnDuty')
+  String get cashiersOnDuty => bartendersOnDuty;
+  @Deprecated('Use bartenderQueue')
+  String get cashierQueue => bartenderQueue;
   String get floorStaff => _sw ? 'Wafanyakazi wa sakafu' : 'Floor staff';
   String get requestTabDeletion => _sw ? 'Omba kufuta tab' : 'Request tab deletion';
   String get deletionReason => _sw ? 'Sababu ya kufuta' : 'Reason for deletion';

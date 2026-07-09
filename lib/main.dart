@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:pos_bar_core/pos_bar_core.dart';
 
+import 'screens/cashier_shell_screen.dart';
 import 'screens/home_screen.dart';
+import 'screens/open_shift_screen.dart';
 import 'screens/pin_screen.dart';
 import 'screens/staff_splash_screen.dart';
+import 'screens/till_picker_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,8 +28,11 @@ class _BarTerminalAppState extends State<BarTerminalApp> {
   final _locale = AppLocaleController();
   late final VenueConfigController _venue = VenueConfigController(config: _config);
   late ApiClient _api = ApiClient(config: _config);
+
   StaffSession? _session;
   StaffCard? _pendingStaff;
+  TillStatus? _selectedTill;
+  StaffShiftInfo? _activeShift;
 
   @override
   void initState() {
@@ -35,35 +41,110 @@ class _BarTerminalAppState extends State<BarTerminalApp> {
     _venue.load();
   }
 
-  void _onLoggedIn(StaffSession session) {
+  bool get _isBartender => _session?.staff.role == 'cashier' || _pendingStaff?.role == 'cashier';
+
+  void _resetToSplash() => setState(() {
+        _session = null;
+        _pendingStaff = null;
+        _selectedTill = null;
+        _activeShift = null;
+        _api = ApiClient(config: _config);
+      });
+
+  void _onStaffSelected(StaffCard staff) => setState(() => _pendingStaff = staff);
+
+  Future<void> _onPinSuccess(StaffSession session) async {
     _api = ApiClient(config: _config, token: session.token);
+
+    if (session.staff.role == 'cashier') {
+      final current = await _api.fetchCurrentShift();
+      setState(() {
+        _session = session;
+        _pendingStaff = null;
+        _activeShift = current;
+        _selectedTill = null;
+      });
+      return;
+    }
+
     setState(() {
       _session = session;
       _pendingStaff = null;
     });
   }
 
-  void _logout() => setState(() {
-        _session = null;
-        _pendingStaff = null;
-        _api = ApiClient(config: _config);
+  void _onTillSelected(TillStatus till) {
+    final shift = till.activeShift;
+    if (shift != null && shift.staffId == _session!.staff.id) {
+      setState(() {
+        _activeShift = StaffShiftInfo(
+          id: shift.id,
+          tillId: till.id,
+          tillName: till.name,
+          tillCode: till.code,
+          startedAt: shift.startedAt,
+          openingFloat: shift.openingFloat,
+        );
+        _selectedTill = null;
       });
+      return;
+    }
+
+    setState(() => _selectedTill = till);
+  }
+
+  void _onShiftOpened(StaffShiftInfo shift) {
+    setState(() {
+      _activeShift = shift;
+      _selectedTill = null;
+    });
+  }
 
   Widget _buildHome() {
-    if (_session != null) {
-      return HomeScreen(api: _api, session: _session!, onLogout: _logout);
+    if (_session != null && _isBartender && _activeShift != null) {
+      return CashierShellScreen(
+        api: _api,
+        session: _session!,
+        shift: _activeShift!,
+        onEndShift: () async => _resetToSplash(),
+      );
     }
+
+    if (_session != null && _isBartender && _selectedTill != null) {
+      return OpenShiftScreen(
+        api: _api,
+        till: _selectedTill!,
+        cashierName: _session!.staff.name,
+        onShiftOpened: _onShiftOpened,
+        onBack: () => setState(() => _selectedTill = null),
+      );
+    }
+
+    if (_session != null && _isBartender) {
+      return TillPickerScreen(
+        api: _api,
+        session: _session!,
+        onTillSelected: _onTillSelected,
+        onBack: _resetToSplash,
+      );
+    }
+
+    if (_session != null) {
+      return HomeScreen(api: _api, session: _session!, onLogout: _resetToSplash);
+    }
+
     if (_pendingStaff != null) {
       return PinScreen(
         staff: _pendingStaff!,
         api: _api,
         onBack: () => setState(() => _pendingStaff = null),
-        onSuccess: _onLoggedIn,
+        onSuccess: _onPinSuccess,
       );
     }
+
     return StaffSplashScreen(
       api: _api,
-      onStaffSelected: (staff) => setState(() => _pendingStaff = staff),
+      onStaffSelected: _onStaffSelected,
     );
   }
 

@@ -83,7 +83,7 @@ class _StaffSplashScreenState extends State<StaffSplashScreen> {
                       itemCount: floorStaff.length,
                       itemBuilder: (context, index) {
                         final staff = floorStaff[index];
-                        final roleLabel = staff.role == 'cashier' ? l10n.cashierRole : l10n.barAttendant;
+                        final roleLabel = staff.role == 'cashier' ? l10n.bartenderRole : l10n.barAttendant;
                         return _NameCard(
                           staff: staff,
                           roleLabel: roleLabel,

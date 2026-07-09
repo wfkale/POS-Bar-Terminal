@@ -1,11 +1,11 @@
 {
-    "name": "POS Bar Floor Terminal",
-    "short_name": "Floor",
+    "name": "POS Bar",
+    "short_name": "POS Bar",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0f1419",
     "theme_color": "#f59e0b",
-    "description": "POS Bar floor terminal — tabs, orders, and bills.",
+    "description": "POS Bar staff terminal — floor orders, tabs, and bartender payments.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
