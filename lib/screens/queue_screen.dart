@@ -10,12 +10,14 @@ class QueueScreen extends StatefulWidget {
     required this.session,
     required this.shift,
     required this.onEndShift,
+    required this.onLogout,
   });
 
   final ApiClient api;
   final StaffSession session;
   final StaffShiftInfo shift;
   final Future<void> Function() onEndShift;
+  final Future<void> Function() onLogout;
 
   @override
   State<QueueScreen> createState() => _QueueScreenState();
@@ -213,6 +215,11 @@ class _QueueScreenState extends State<QueueScreen> {
             ],
           ),
           IconButton(onPressed: _refresh, icon: const Icon(Icons.refresh)),
+          TextButton.icon(
+            onPressed: widget.onLogout,
+            icon: const Icon(Icons.logout, size: 18),
+            label: Text(l10n.logout),
+          ),
           TextButton.icon(
             onPressed: _confirmEndShift,
             icon: const Icon(Icons.logout, size: 18),

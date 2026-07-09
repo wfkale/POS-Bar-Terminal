@@ -35,6 +35,7 @@ class ReceiptBuilder {
       paymentMethod: paymentMethod,
       tillLabel: tillLabel,
       tableLabel: null,
+      location: tillLabel ?? venue.address,
     );
   }
 
@@ -46,6 +47,7 @@ class ReceiptBuilder {
     required String? paymentMethod,
     required String? tillLabel,
     required String? tableLabel,
+    String? location,
   }) {
     final taxRate = venue.taxRate;
     final total = order.total;
@@ -55,7 +57,7 @@ class ReceiptBuilder {
     return BarReceipt(
       kind: kind,
       venueName: venue.name,
-      location: venue.address,
+      location: location ?? venue.address,
       phone: venue.phone,
       tin: venue.tin,
       vrn: venue.vrn,

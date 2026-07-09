@@ -170,6 +170,11 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
                   onPressed: _busy || _cart.isEmpty ? null : () => _submit(),
                   child: _busy ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)) : Text(l10n.sendAndPrintBill),
                 ),
+                const SizedBox(height: 10),
+                OutlinedButton(
+                  onPressed: _busy || _cart.isEmpty ? null : () => _submit(sendToCashier: false),
+                  child: Text(l10n.printBill),
+                ),
               ],
             ),
           ),

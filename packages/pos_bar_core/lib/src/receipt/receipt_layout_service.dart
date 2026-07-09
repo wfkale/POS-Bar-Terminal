@@ -96,8 +96,12 @@ class ReceiptLayoutService {
       style: ReceiptTextStyle.title,
     ));
 
-    final location = _has(receipt.location) ? receipt.location!.trim() : 'HEAD OFFICE';
-    lines.add(_cline(location.toUpperCase()));
+    final location = _has(receipt.tillLabel)
+        ? receipt.tillLabel!.trim()
+        : (_has(receipt.location) ? receipt.location!.trim() : '');
+    if (_has(location)) {
+      lines.add(_cline(location.toUpperCase()));
+    }
 
     lines.add(_cline('TEL: ${_field(receipt.phone)}'));
     lines.add(_cline('TIN: ${_field(receipt.tin)}'));
@@ -119,7 +123,6 @@ class ReceiptLayoutService {
     if (_has(receipt.orderNumber)) lines.add(_cline('ORDER: ${receipt.orderNumber}'));
     if (_has(receipt.tableLabel)) lines.add(_cline('TABLE: ${receipt.tableLabel}'));
     if (_has(receipt.staffName)) lines.add(_cline('STAFF: ${receipt.staffName}'));
-    if (_has(receipt.tillLabel)) lines.add(_cline('TILL: ${receipt.tillLabel}'));
     if (_has(receipt.paymentMethod)) {
       lines.add(_cline('PAYMENT: ${receipt.paymentMethod!.toUpperCase()}'));
     }

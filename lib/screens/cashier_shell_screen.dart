@@ -11,12 +11,14 @@ class CashierShellScreen extends StatefulWidget {
     required this.session,
     required this.shift,
     required this.onEndShift,
+    required this.onLogout,
   });
 
   final ApiClient api;
   final StaffSession session;
   final StaffShiftInfo shift;
   final Future<void> Function() onEndShift;
+  final Future<void> Function() onLogout;
 
   @override
   State<CashierShellScreen> createState() => _CashierShellScreenState();
@@ -37,6 +39,7 @@ class _CashierShellScreenState extends State<CashierShellScreen> {
             session: widget.session,
             shift: widget.shift,
             onEndShift: widget.onEndShift,
+            onLogout: widget.onLogout,
           ),
           FloorHomeScreen(
             api: widget.api,
