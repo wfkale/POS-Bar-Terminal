@@ -10,6 +10,7 @@ class AppStrings {
 
   String get retry => _sw ? 'Jaribu tena' : 'Retry';
   String get cancel => _sw ? 'Ghairi' : 'Cancel';
+  String get close => _sw ? 'Funga' : 'Close';
   String get cart => _sw ? 'Kikapu' : 'Cart';
   String get total => _sw ? 'Jumla' : 'Total';
   String get available => _sw ? 'Inapatikana' : 'Available';
