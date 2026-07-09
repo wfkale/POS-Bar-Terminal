@@ -15,6 +15,7 @@ export 'src/floor/floor_home_screen.dart';
 export 'src/floor/metrics_screen.dart';
 export 'src/floor/new_order_screen.dart';
 export 'src/floor/open_tabs_screen.dart';
+export 'src/floor/tab_detail_screen.dart';
 export 'src/models/tab_deletion_request.dart';
 export 'src/config/venue_scope.dart';
 export 'src/models/venue_config.dart';

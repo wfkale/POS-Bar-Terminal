@@ -91,6 +91,12 @@ class ApiClient {
     return BarTab.fromJson(jsonDecode(res.body)['data'] as Map<String, dynamic>);
   }
 
+  Future<BarTabDetail> fetchTabDetail(int tabId) async {
+    final res = await http.get(Uri.parse('${config.apiBaseUrl}/tabs/$tabId'), headers: _headers);
+    _ensureSuccess(res);
+    return BarTabDetail.fromJson(jsonDecode(res.body)['data'] as Map<String, dynamic>);
+  }
+
   Future<void> requestTabDeletion(int tabId, {required String reason}) async {
     final res = await http.post(
       Uri.parse('${config.apiBaseUrl}/tabs/$tabId/deletion-requests'),

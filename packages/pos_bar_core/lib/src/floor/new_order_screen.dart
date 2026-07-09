@@ -41,32 +41,26 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
           .toList();
       var order = await widget.api.createOrder(type: widget.type, tabId: _selectedTabId, lines: lines);
       if (sendToCashier) order = await widget.api.sendOrder(order.id);
-      final bill = await widget.api.printBill(order.id);
-      final billNumber = bill['bill_number']?.toString() ?? order.orderNumber;
-      final venue = VenueScope.of(context).venue;
-      final receipt = BillPrintService.buildBill(
-        order: order,
-        venue: venue,
-        billNumber: billNumber,
-      );
 
-      final printResult = await BillPrintService.printCustomerBill(receipt);
-      if (!printResult.ok && mounted && printResult.status != BillPrintStatus.noPrinter) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${l10n.billPrintFailed}: ${printResult.message ?? ''}')),
-        );
+      String? tableLabel;
+      if (widget.type == 'tab' && _selectedTabId != null) {
+        final tabs = await widget.api.fetchOpenTabs();
+        tableLabel = tabs.where((t) => t.id == _selectedTabId).map((t) => t.tableLabel).firstOrNull;
       }
 
-      if (!mounted) return;
-      await BillPrintService.previewBill(
+      await BillPrintService.printOrderBillWithFeedback(
         context: context,
-        receipt: receipt,
-        closeLabel: l10n.close,
+        api: widget.api,
+        order: order,
+        tableLabel: tableLabel,
       );
+
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(sendToCashier ? l10n.orderSentToCashier(order.orderNumber) : l10n.billPrinted)),
-      );
+      if (sendToCashier) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.orderSentToCashier(order.orderNumber))),
+        );
+      }
       Navigator.pop(context);
     } on ApiException catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));

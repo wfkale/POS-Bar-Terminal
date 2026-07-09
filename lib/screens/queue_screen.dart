@@ -65,43 +65,14 @@ class _QueueScreenState extends State<QueueScreen> {
 
   /// Print proforma bill only — does not record payment (use checkout for pay).
   Future<void> _printBill(BarOrder order) async {
-    final l10n = context.l10n;
+    if (_printing) return;
     setState(() => _printing = true);
     try {
-      final bill = await widget.api.printBill(order.id, type: 'proforma');
-      final billNumber = bill['bill_number']?.toString() ?? order.orderNumber;
-      final venue = VenueScope.of(context).venue;
-      final receipt = BillPrintService.buildBill(
+      await BillPrintService.printOrderBillWithFeedback(
+        context: context,
+        api: widget.api,
         order: order,
-        venue: venue,
-        billNumber: billNumber,
       );
-
-      final result = await BillPrintService.printCustomerBill(receipt);
-      if (!mounted) return;
-
-      switch (result.status) {
-        case BillPrintStatus.printed:
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(l10n.billPrinted)),
-          );
-        case BillPrintStatus.noPrinter:
-        case BillPrintStatus.failed:
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                result.status == BillPrintStatus.noPrinter
-                    ? '${l10n.billPrintFailed}. ${l10n.printerNeeded}'
-                    : '${l10n.billPrintFailed}: ${result.message ?? ''}',
-              ),
-            ),
-          );
-          await BillPrintService.previewBill(
-            context: context,
-            receipt: receipt,
-            closeLabel: l10n.close,
-          );
-      }
     } on ApiException catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
     } finally {

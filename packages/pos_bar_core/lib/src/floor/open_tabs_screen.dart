@@ -187,6 +187,11 @@ class _OpenTabsScreenState extends State<OpenTabsScreen> {
               return ListTile(
                 tileColor: AppTheme.surface,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => TabDetailScreen(api: widget.api, tabId: tab.id),
+                  ),
+                ),
                 title: Row(
                   children: [
                     Expanded(child: Text(tab.customerName)),

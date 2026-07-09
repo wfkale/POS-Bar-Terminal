@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../api/api_client.dart';
+import '../config/venue_scope.dart';
+import '../l10n/locale_scope.dart';
 import '../models/order.dart';
 import '../models/venue_config.dart';
 import 'bar_receipt.dart';
@@ -72,5 +75,52 @@ class BillPrintService {
       title: 'Bill preview',
       closeLabel: closeLabel,
     );
+  }
+
+  /// Pair printer, print proforma bill, and surface success/failure like the bartender queue.
+  static Future<BillPrintResult> printOrderBillWithFeedback({
+    required BuildContext context,
+    required ApiClient api,
+    required BarOrder order,
+    String? tableLabel,
+  }) async {
+    final l10n = context.l10n;
+    final bill = await api.printBill(order.id, type: 'proforma');
+    final billNumber = bill['bill_number']?.toString() ?? order.orderNumber;
+    final venue = VenueScope.of(context).venue;
+    final receipt = buildBill(
+      order: order,
+      venue: venue,
+      billNumber: billNumber,
+      tableLabel: tableLabel,
+    );
+
+    final result = await printCustomerBill(receipt);
+    if (!context.mounted) return result;
+
+    switch (result.status) {
+      case BillPrintStatus.printed:
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.billPrinted)),
+        );
+      case BillPrintStatus.noPrinter:
+      case BillPrintStatus.failed:
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              result.status == BillPrintStatus.noPrinter
+                  ? '${l10n.billPrintFailed}. ${l10n.printerNeeded}'
+                  : '${l10n.billPrintFailed}: ${result.message ?? ''}',
+            ),
+          ),
+        );
+        await previewBill(
+          context: context,
+          receipt: receipt,
+          closeLabel: l10n.close,
+        );
+    }
+
+    return result;
   }
 }
