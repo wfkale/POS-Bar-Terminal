@@ -1,11 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:pos_bar_core/pos_bar_core.dart';
 
+enum _OrderSubmitAction { addToTab, sendToBartender, printBill, sendAndPrint }
+
 class NewOrderScreen extends StatefulWidget {
-  const NewOrderScreen({super.key, required this.api, required this.type});
+  const NewOrderScreen({
+    super.key,
+    required this.api,
+    required this.type,
+    this.initialTabId,
+  });
 
   final ApiClient api;
   final String type;
+  final int? initialTabId;
 
   @override
   State<NewOrderScreen> createState() => _NewOrderScreenState();
@@ -22,12 +30,20 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
   void initState() {
     super.initState();
     _menuFuture = widget.api.fetchMenu();
-    if (widget.type == 'tab') _tabsFuture = widget.api.fetchOpenTabs();
+    if (widget.type == 'tab') {
+      _selectedTabId = widget.initialTabId;
+      _tabsFuture = widget.api.fetchOpenTabs();
+    }
   }
 
   double get _total => _cart.entries.fold(0.0, (sum, e) => sum + e.key.sellPrice * e.value);
 
-  Future<void> _submit({bool sendToCashier = true}) async {
+  Future<String?> _tableLabelForTab(int tabId) async {
+    final tabs = await widget.api.fetchOpenTabs();
+    return tabs.where((t) => t.id == tabId).map((t) => t.tableLabel).firstOrNull;
+  }
+
+  Future<void> _submit(_OrderSubmitAction action) async {
     final l10n = context.l10n;
     if (_cart.isEmpty) return;
     if (widget.type == 'tab' && _selectedTabId == null) {
@@ -40,26 +56,36 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
           .map((e) => {'menu_item_id': e.key.id, 'quantity': e.value})
           .toList();
       var order = await widget.api.createOrder(type: widget.type, tabId: _selectedTabId, lines: lines);
-      if (sendToCashier) order = await widget.api.sendOrder(order.id);
 
-      String? tableLabel;
-      if (widget.type == 'tab' && _selectedTabId != null) {
-        final tabs = await widget.api.fetchOpenTabs();
-        tableLabel = tabs.where((t) => t.id == _selectedTabId).map((t) => t.tableLabel).firstOrNull;
+      final send = action == _OrderSubmitAction.sendToBartender || action == _OrderSubmitAction.sendAndPrint;
+      final print = action == _OrderSubmitAction.printBill || action == _OrderSubmitAction.sendAndPrint;
+
+      if (send) order = await widget.api.sendOrder(order.id);
+
+      if (print) {
+        String? tableLabel;
+        if (widget.type == 'tab' && _selectedTabId != null) {
+          tableLabel = await _tableLabelForTab(_selectedTabId!);
+        }
+        await BillPrintService.printOrderBillWithFeedback(
+          context: context,
+          api: widget.api,
+          order: order,
+          tableLabel: tableLabel,
+        );
       }
 
-      await BillPrintService.printOrderBillWithFeedback(
-        context: context,
-        api: widget.api,
-        order: order,
-        tableLabel: tableLabel,
-      );
-
       if (!mounted) return;
-      if (sendToCashier) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.orderSentToCashier(order.orderNumber))),
-        );
+      switch (action) {
+        case _OrderSubmitAction.addToTab:
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.addedToTab)));
+        case _OrderSubmitAction.sendToBartender:
+        case _OrderSubmitAction.sendAndPrint:
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(l10n.orderSentToCashier(order.orderNumber))),
+          );
+        case _OrderSubmitAction.printBill:
+          break;
       }
       Navigator.pop(context);
     } on ApiException catch (e) {
@@ -69,13 +95,30 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
     }
   }
 
+  void _viewTab() {
+    final tabId = _selectedTabId;
+    if (tabId == null) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => TabDetailScreen(api: widget.api, tabId: tabId)),
+    );
+  }
+
+  Widget _busyOrLabel(String label) {
+    if (_busy) {
+      return const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2));
+    }
+    return Text(label);
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final currency = currencyFormat;
+    final isTab = widget.type == 'tab';
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.type == 'cash' ? l10n.cashOrder : l10n.tabOrder),
+        title: Text(isTab ? l10n.tabOrder : l10n.cashOrder),
         actions: const [FloorAppBarActions()],
       ),
       body: Row(
@@ -89,7 +132,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
                 return ListView(
                   padding: const EdgeInsets.all(16),
                   children: [
-                    if (widget.type == 'tab')
+                    if (isTab)
                       FutureBuilder<List<BarTab>>(
                         future: _tabsFuture,
                         builder: (context, tabSnap) {
@@ -139,7 +182,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
             ),
           ),
           Container(
-            width: 280,
+            width: 300,
             color: AppTheme.surface,
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -160,15 +203,48 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
                 ),
                 Text('${l10n.total}: ${currency.format(_total)}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 16),
-                FilledButton(
-                  onPressed: _busy || _cart.isEmpty ? null : () => _submit(),
-                  child: _busy ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)) : Text(l10n.sendAndPrintBill),
-                ),
-                const SizedBox(height: 10),
-                OutlinedButton(
-                  onPressed: _busy || _cart.isEmpty ? null : () => _submit(sendToCashier: false),
-                  child: Text(l10n.printBill),
-                ),
+                if (isTab) ...[
+                  FilledButton(
+                    onPressed: _busy || _cart.isEmpty ? null : () => _submit(_OrderSubmitAction.addToTab),
+                    child: _busyOrLabel(l10n.addToTab),
+                  ),
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    onPressed: _busy || _cart.isEmpty ? null : () => _submit(_OrderSubmitAction.sendToBartender),
+                    icon: const Icon(Icons.send, size: 18),
+                    label: Text(l10n.sendToBartender),
+                  ),
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    onPressed: _busy || _cart.isEmpty ? null : () => _submit(_OrderSubmitAction.printBill),
+                    icon: const Icon(Icons.print, size: 18),
+                    label: Text(l10n.printBill),
+                  ),
+                  const SizedBox(height: 8),
+                  OutlinedButton(
+                    onPressed: _busy || _cart.isEmpty ? null : () => _submit(_OrderSubmitAction.sendAndPrint),
+                    child: Text(l10n.sendAndPrintBill),
+                  ),
+                  if (_selectedTabId != null) ...[
+                    const SizedBox(height: 8),
+                    TextButton.icon(
+                      onPressed: _busy ? null : _viewTab,
+                      icon: const Icon(Icons.open_in_new, size: 18),
+                      label: Text(l10n.viewTab),
+                    ),
+                  ],
+                ] else ...[
+                  FilledButton(
+                    onPressed: _busy || _cart.isEmpty ? null : () => _submit(_OrderSubmitAction.sendAndPrint),
+                    child: _busyOrLabel(l10n.sendAndPrintBill),
+                  ),
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    onPressed: _busy || _cart.isEmpty ? null : () => _submit(_OrderSubmitAction.sendToBartender),
+                    icon: const Icon(Icons.send, size: 18),
+                    label: Text(l10n.sendToBartender),
+                  ),
+                ],
               ],
             ),
           ),

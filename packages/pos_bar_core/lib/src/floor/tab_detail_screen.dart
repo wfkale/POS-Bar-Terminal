@@ -207,6 +207,26 @@ class _TabDetailScreenState extends State<TabDetailScreen> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         FilledButton.icon(
+                          onPressed: _busy
+                              ? null
+                              : () async {
+                                  await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => NewOrderScreen(
+                                        api: widget.api,
+                                        type: 'tab',
+                                        initialTabId: widget.tabId,
+                                      ),
+                                    ),
+                                  );
+                                  if (mounted) _refresh();
+                                },
+                          icon: const Icon(Icons.add_shopping_cart),
+                          label: Text(l10n.addItems),
+                        ),
+                        const SizedBox(height: 8),
+                        FilledButton.icon(
                           onPressed: _busy || drafts.isEmpty ? null : () => _sendToBartender(detail),
                           icon: const Icon(Icons.send),
                           label: Text(l10n.sendToBartender),

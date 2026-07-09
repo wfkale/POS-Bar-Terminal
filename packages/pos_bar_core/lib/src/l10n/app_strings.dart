@@ -52,6 +52,10 @@ class AppStrings {
   String get billPrinted => _sw ? 'Bili imechapishwa' : 'Bill printed';
   String get selectTab => _sw ? 'Chagua tab' : 'Select tab';
   String get sendAndPrintBill => _sw ? 'Tuma & Chapisha Bili' : 'Send & Print Bill';
+  String get addToTab => _sw ? 'Ongeza kwenye tab' : 'Add to tab';
+  String get addedToTab => _sw ? 'Imeongezwa kwenye tab' : 'Added to tab';
+  String get viewTab => _sw ? 'Angalia tab' : 'View tab';
+  String get addItems => _sw ? 'Ongeza bidhaa' : 'Add items';
 
   String get tabsOpened => _sw ? 'Tab Zilizofunguliwa' : 'Tabs Opened';
   String get ordersCreated => _sw ? 'Agizo Zilizoundwa' : 'Orders Created';
