@@ -20,10 +20,10 @@ class FloorHomeScreen extends StatelessWidget {
   final VoidCallback? onLogout;
   final List<Widget> extraAppBarActions;
 
-  static const _itemCount = 5;
+  static const _columns = 3;
+  static const _rows = 2;
   static const _padding = 16.0;
   static const _spacing = 12.0;
-  static const _minTileHeight = 84.0;
 
   @override
   Widget build(BuildContext context) {
@@ -98,7 +98,9 @@ class FloorHomeScreen extends StatelessWidget {
         builder: (context, constraints) {
           final gridWidth = constraints.maxWidth - _padding * 2;
           final gridHeight = constraints.maxHeight - _padding * 2;
-          final layout = _fitGridLayout(width: gridWidth, height: gridHeight);
+          final tileWidth = (gridWidth - _spacing * (_columns - 1)) / _columns;
+          final tileHeight = (gridHeight - _spacing * (_rows - 1)) / _rows;
+          final aspectRatio = tileWidth / tileHeight;
 
           return Padding(
             padding: const EdgeInsets.all(_padding),
@@ -106,10 +108,10 @@ class FloorHomeScreen extends StatelessWidget {
               width: gridWidth,
               height: gridHeight,
               child: GridView.count(
-                crossAxisCount: layout.columns,
+                crossAxisCount: _columns,
                 mainAxisSpacing: _spacing,
                 crossAxisSpacing: _spacing,
-                childAspectRatio: layout.aspectRatio,
+                childAspectRatio: aspectRatio,
                 physics: const NeverScrollableScrollPhysics(),
                 children: tiles,
               ),
@@ -119,42 +121,6 @@ class FloorHomeScreen extends StatelessWidget {
       ),
     );
   }
-
-  /// Picks column count and aspect ratio so every tile fits in the viewport.
-  static _GridLayout _fitGridLayout({required double width, required double height}) {
-    _GridLayout? best;
-
-    for (var cols = 2; cols <= _itemCount; cols++) {
-      final rows = (_itemCount / cols).ceil();
-      final tileWidth = (width - _spacing * (cols - 1)) / cols;
-      final tileHeight = (height - _spacing * (rows - 1)) / rows;
-      if (tileWidth <= 0 || tileHeight < _minTileHeight) continue;
-
-      final candidate = _GridLayout(
-        columns: cols,
-        aspectRatio: tileWidth / tileHeight,
-        tileHeight: tileHeight,
-      );
-
-      if (best == null || candidate.tileHeight > best.tileHeight) {
-        best = candidate;
-      }
-    }
-
-    return best ?? const _GridLayout(columns: 2, aspectRatio: 1.1, tileHeight: 120);
-  }
-}
-
-class _GridLayout {
-  const _GridLayout({
-    required this.columns,
-    required this.aspectRatio,
-    required this.tileHeight,
-  });
-
-  final int columns;
-  final double aspectRatio;
-  final double tileHeight;
 }
 
 class _ActionTile extends StatelessWidget {
