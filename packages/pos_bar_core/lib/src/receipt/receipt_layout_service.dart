@@ -3,7 +3,8 @@ import 'package:intl/intl.dart';
 import 'bar_receipt.dart';
 import 'receipt_line.dart';
 
-/// POS Butcher-style receipt layout for 80mm paper (≈72mm print width).
+/// Receipt layout for 80mm paper (≈72mm print width).
+/// Proforma bills use the simple bar bill format; paid receipts use the Butcher-style layout.
 class ReceiptLayoutService {
   /// Characters usable on 80mm thermal with condensed monospace font.
   static const int thermalWidth = 42;
@@ -20,21 +21,77 @@ class ReceiptLayoutService {
   }
 
   static List<ReceiptLine> buildStyledLines(BarReceipt receipt) {
+    if (receipt.isProforma) {
+      return _buildBillLines(receipt);
+    }
+    return _buildReceiptLines(receipt);
+  }
+
+  /// Simple customer bill (floor + till reprint) — unchanged bar format.
+  static List<ReceiptLine> _buildBillLines(BarReceipt receipt) {
+    final lines = <ReceiptLine>[];
+    final date = DateFormat('dd-MM-yyyy').format(receipt.printedAt.toLocal());
+    final time = DateFormat('HH:mm').format(receipt.printedAt.toLocal());
+
+    lines.add(_cline('*** CUSTOMER BILL ***', style: ReceiptTextStyle.bold));
+    lines.add(_cline(receipt.venueName.toUpperCase(), style: ReceiptTextStyle.title));
+    if (_has(receipt.location)) {
+      lines.add(_cline(receipt.location!.trim().toUpperCase()));
+    }
+    if (_has(receipt.phone)) lines.add(_cline('TEL: ${receipt.phone!.trim()}'));
+    if (_has(receipt.tin)) lines.add(_cline('TIN: ${receipt.tin!.trim()}'));
+    if (_has(receipt.vrn)) lines.add(_cline('VRN: ${receipt.vrn!.trim()}'));
+    lines.add(_cline(_rule()));
+
+    lines.add(_cline('BILL NO: ${receipt.documentNumber}'));
+    if (_has(receipt.orderNumber)) lines.add(_cline('ORDER: ${receipt.orderNumber}'));
+    lines.add(_cline('DATE: $date  TIME: $time'));
+    if (_has(receipt.staffName)) lines.add(_cline('STAFF: ${receipt.staffName}'));
+    if (_has(receipt.tableLabel)) lines.add(_cline('TABLE: ${receipt.tableLabel}'));
+    if (_has(receipt.customerName)) lines.add(_cline('CUSTOMER: ${receipt.customerName}'));
+
+    lines.add(const ReceiptLine(''));
+    lines.addAll(_itemSection(receipt, centered: true));
+    lines.add(_cline(_moneyLine('TOTAL EXCL. TAX', receipt.subtotal)));
+    lines.add(_cline(_moneyLine('VAT ${receipt.taxRate.toStringAsFixed(0)}%', receipt.taxAmount)));
+    lines.add(_cline(
+      _moneyLine('TOTAL INCL. TAX', receipt.total),
+      style: ReceiptTextStyle.bold,
+    ));
+    lines.add(_cline(_rule()));
+
+    if (receipt.lipaNumbers.isNotEmpty) {
+      lines.add(const ReceiptLine(''));
+      lines.add(_cline('MOBILE MONEY LIPA', style: ReceiptTextStyle.bold));
+      for (final lipa in receipt.lipaNumbers) {
+        lines.add(_cline('${lipa.provider.toUpperCase()}: ${lipa.number}'));
+      }
+    }
+
+    lines.add(const ReceiptLine(''));
+    lines.add(_cline('NOT A FISCAL RECEIPT'));
+    if (_has(receipt.notes)) {
+      lines.add(const ReceiptLine(''));
+      for (final noteLine in _wrap(receipt.notes!.trim(), thermalWidth)) {
+        lines.add(_cline(noteLine));
+      }
+    }
+    lines.add(const ReceiptLine(''));
+    lines.add(_cline('*** END OF BILL ***'));
+
+    return lines;
+  }
+
+  /// Butcher-style sale receipt after payment.
+  static List<ReceiptLine> _buildReceiptLines(BarReceipt receipt) {
     final lines = <ReceiptLine>[];
     final date = DateFormat('dd-MM-yyyy').format(receipt.printedAt.toLocal());
     final time = DateFormat('HH:mm:ss').format(receipt.printedAt.toLocal());
 
-    if (receipt.isProforma) {
-      lines.add(_cline(
-        '*** SYSTEM GENERATED BILL ***',
-        style: ReceiptTextStyle.fine,
-      ));
-    } else {
-      lines.add(_cline(
-        '*** SYSTEM GENERATED RECEIPT ***',
-        style: ReceiptTextStyle.fine,
-      ));
-    }
+    lines.add(_cline(
+      '*** SYSTEM GENERATED RECEIPT ***',
+      style: ReceiptTextStyle.fine,
+    ));
 
     lines.add(_cline(
       receipt.venueName.toUpperCase(),
@@ -57,11 +114,7 @@ class ReceiptLayoutService {
     lines.add(_cline('CUSTOMER VRN: ${_field(receipt.customerVrn)}'));
     lines.add(const ReceiptLine(''));
 
-    if (receipt.isProforma) {
-      lines.add(_cline('BILL NUMBER: ${receipt.documentNumber}'));
-    } else {
-      lines.add(_cline('RECEIPT NUMBER: ${receipt.documentNumber}'));
-    }
+    lines.add(_cline('RECEIPT NUMBER: ${receipt.documentNumber}'));
     lines.add(_cline('ZNO: ${_field(receipt.zno)}'));
     lines.add(_cline('RECEIPT DATE: $date  TIME: $time'));
 
@@ -69,12 +122,12 @@ class ReceiptLayoutService {
     if (_has(receipt.tableLabel)) lines.add(_cline('TABLE: ${receipt.tableLabel}'));
     if (_has(receipt.staffName)) lines.add(_cline('STAFF: ${receipt.staffName}'));
     if (_has(receipt.tillLabel)) lines.add(_cline('TILL: ${receipt.tillLabel}'));
-    if (!receipt.isProforma && _has(receipt.paymentMethod)) {
+    if (_has(receipt.paymentMethod)) {
       lines.add(_cline('PAYMENT: ${receipt.paymentMethod!.toUpperCase()}'));
     }
 
     lines.add(const ReceiptLine(''));
-    lines.addAll(_itemSection(receipt));
+    lines.addAll(_itemSection(receipt, centered: true));
     lines.add(_cline(_moneyLine('TOTAL EXCLUSIVE OF TAX', receipt.subtotal)));
     lines.add(_cline(_moneyLine('DISCOUNT', receipt.discount)));
     lines.add(_cline(_moneyLine('TAX A - ${receipt.taxRate.toStringAsFixed(0)}%', receipt.taxAmount)));
@@ -85,20 +138,9 @@ class ReceiptLayoutService {
     ));
     lines.add(const ReceiptLine(''));
 
-    if (receipt.isProforma) {
-      if (receipt.lipaNumbers.isNotEmpty) {
-        lines.add(_cline('MOBILE MONEY LIPA', style: ReceiptTextStyle.bold));
-        for (final lipa in receipt.lipaNumbers) {
-          lines.add(_cline('${lipa.provider.toUpperCase()}: ${lipa.number}'));
-        }
-        lines.add(const ReceiptLine(''));
-      }
-      lines.add(_cline('NOT A FISCAL RECEIPT'));
-    } else {
-      final code = receipt.verificationCode ?? _verificationCode(receipt);
-      lines.add(_cline('RECEIPT VERIFICATION CODE'));
-      lines.add(_cline(code, style: ReceiptTextStyle.bold));
-    }
+    final code = receipt.verificationCode ?? _verificationCode(receipt);
+    lines.add(_cline('RECEIPT VERIFICATION CODE'));
+    lines.add(_cline(code, style: ReceiptTextStyle.bold));
 
     if (_has(receipt.notes)) {
       lines.add(const ReceiptLine(''));
@@ -108,17 +150,10 @@ class ReceiptLayoutService {
     }
 
     lines.add(const ReceiptLine(''));
-    if (receipt.isProforma) {
-      lines.add(_cline(
-        '*** END OF SYSTEM GENERATED BILL ***',
-        style: ReceiptTextStyle.fine,
-      ));
-    } else {
-      lines.add(_cline(
-        '*** END OF SYSTEM GENERATED RECEIPT ***',
-        style: ReceiptTextStyle.fine,
-      ));
-    }
+    lines.add(_cline(
+      '*** END OF SYSTEM GENERATED RECEIPT ***',
+      style: ReceiptTextStyle.fine,
+    ));
 
     return lines;
   }
@@ -161,27 +196,32 @@ class ReceiptLayoutService {
     return value!.trim();
   }
 
-  static List<ReceiptLine> _itemSection(BarReceipt receipt) {
+  static List<ReceiptLine> _itemSection(BarReceipt receipt, {required bool centered}) {
+    ReceiptLine row(String text, {ReceiptTextStyle style = ReceiptTextStyle.normal}) {
+      if (centered) return _cline(text, style: style);
+      return ReceiptLine(text, style: style);
+    }
+
     final lines = <ReceiptLine>[
-      _cline(_rule()),
-      _cline(_columnsLine('DESCRIPTION', 'QTY', 'PRICE', 'AMOUNT'), style: ReceiptTextStyle.bold),
-      _cline(_rule()),
+      row(_rule()),
+      row(_columnsLine('DESCRIPTION', 'QTY', 'PRICE', 'AMOUNT'), style: ReceiptTextStyle.bold),
+      row(_rule()),
     ];
 
     for (final item in receipt.items) {
       final name = item.name.trim().isEmpty ? 'ITEM' : item.name.trim().toUpperCase();
       final detail = _itemDetailLine(item);
       if (name.length <= 14) {
-        lines.add(_cline(_itemRow(name, detail)));
+        lines.add(row(_itemRow(name, detail)));
       } else {
         for (final nameLine in _wrap(name, thermalWidth)) {
-          lines.add(_cline(nameLine));
+          lines.add(row(nameLine));
         }
-        lines.add(_cline(detail));
+        lines.add(row(detail));
       }
     }
 
-    lines.add(_cline(_rule()));
+    lines.add(row(_rule()));
     return lines;
   }
 
