@@ -14,6 +14,8 @@ class MenuCategory {
       );
 }
 
+enum StockStatus { ok, low, out }
+
 class MenuItem {
   const MenuItem({
     required this.id,
@@ -23,6 +25,9 @@ class MenuItem {
     this.promoLabel,
     this.onPromo = false,
     this.description,
+    this.stockStatus = StockStatus.ok,
+    this.stockLabel,
+    this.availableServings,
   });
 
   final int id;
@@ -34,12 +39,23 @@ class MenuItem {
   final String? promoLabel;
   final bool onPromo;
   final String? description;
+  final StockStatus stockStatus;
+  final String? stockLabel;
+  final int? availableServings;
 
   bool get hasPromo => onPromo && listPrice != null && listPrice! > sellPrice;
+  bool get isOutOfStock => stockStatus == StockStatus.out;
+  bool get isLowStock => stockStatus == StockStatus.low;
 
   factory MenuItem.fromJson(Map<String, dynamic> json) {
     final sell = double.parse(json['sell_price'].toString());
     final list = json['list_price'] != null ? double.parse(json['list_price'].toString()) : null;
+    final statusRaw = (json['stock_status'] as String?)?.toLowerCase();
+    final status = switch (statusRaw) {
+      'out' => StockStatus.out,
+      'low' => StockStatus.low,
+      _ => StockStatus.ok,
+    };
     return MenuItem(
       id: json['id'] as int,
       name: json['name'] as String,
@@ -48,6 +64,11 @@ class MenuItem {
       promoLabel: json['promo_label'] as String?,
       onPromo: json['on_promo'] == true || (list != null && list > sell),
       description: json['description'] as String?,
+      stockStatus: status,
+      stockLabel: json['stock_label'] as String?,
+      availableServings: json['available_servings'] == null
+          ? null
+          : int.tryParse(json['available_servings'].toString()),
     );
   }
 

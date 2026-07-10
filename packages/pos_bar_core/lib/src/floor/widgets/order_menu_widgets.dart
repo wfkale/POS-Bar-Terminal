@@ -334,6 +334,27 @@ class _ProductTile extends StatelessWidget {
                   ],
                 ),
               ),
+              if (item.stockLabel != null)
+                Positioned(
+                  top: 6,
+                  left: 6,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: item.isOutOfStock ? const Color(0xFFdc2626) : const Color(0xFFd97706),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      item.stockLabel!,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 10,
+                        letterSpacing: 0.4,
+                      ),
+                    ),
+                  ),
+                ),
               if (inCart)
                 Positioned(
                   top: 6,

@@ -47,6 +47,7 @@ class VenueConfig {
     required this.paymentMethods,
     this.lipaNumbers = const [],
     this.taxRate = 18,
+    this.allowOversell = true,
     this.address,
     this.phone,
     this.tin,
@@ -60,6 +61,7 @@ class VenueConfig {
   final List<PaymentMethodOption> paymentMethods;
   final List<LipaNumber> lipaNumbers;
   final double taxRate;
+  final bool allowOversell;
   final String? address;
   final String? phone;
   final String? tin;
@@ -71,6 +73,7 @@ class VenueConfig {
         logoUrl: json['logo_url'] as String?,
         currency: json['currency'] as String? ?? 'TZS',
         taxRate: json['tax_rate'] == null ? 18 : double.tryParse(json['tax_rate'].toString()) ?? 18,
+        allowOversell: json['allow_oversell'] != false,
         address: json['address'] as String?,
         phone: json['phone'] as String?,
         tin: json['tin'] as String?,
@@ -91,6 +94,7 @@ class VenueConfig {
     List<PaymentMethodOption>? paymentMethods,
     List<LipaNumber>? lipaNumbers,
     double? taxRate,
+    bool? allowOversell,
     String? address,
     String? phone,
     String? tin,
@@ -104,6 +108,7 @@ class VenueConfig {
         paymentMethods: paymentMethods ?? this.paymentMethods,
         lipaNumbers: lipaNumbers ?? this.lipaNumbers,
         taxRate: taxRate ?? this.taxRate,
+        allowOversell: allowOversell ?? this.allowOversell,
         address: address ?? this.address,
         phone: phone ?? this.phone,
         tin: tin ?? this.tin,
@@ -129,6 +134,7 @@ class VenueConfig {
     name: 'POS Bar',
     currency: 'TZS',
     taxRate: 18,
+    allowOversell: true,
     paymentMethods: [
       PaymentMethodOption(code: 'cash', label: 'Cash', labelSw: 'Taslimu'),
       PaymentMethodOption(code: 'card', label: 'Card', labelSw: 'Kadi'),

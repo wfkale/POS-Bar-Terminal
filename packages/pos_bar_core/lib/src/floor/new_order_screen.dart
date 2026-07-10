@@ -43,7 +43,70 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
 
   double get _total => _cart.entries.fold(0.0, (sum, e) => sum + e.key.sellPrice * e.value);
 
-  void _addItem(MenuItem item) => setState(() => _cart[item] = (_cart[item] ?? 0) + 1);
+  bool get _allowOversell => VenueScope.maybeConfigOf(context)?.allowOversell ?? true;
+
+  List<MapEntry<MenuItem, int>> get _stockRiskLines {
+    return _cart.entries.where((e) {
+      final available = e.key.availableServings;
+      if (e.key.isOutOfStock) return true;
+      if (available != null && e.value > available) return true;
+      return false;
+    }).toList();
+  }
+
+  String _stockRiskSummary(AppStrings l10n) {
+    return _stockRiskLines
+        .map((e) {
+          final available = e.key.availableServings;
+          final availText = available == null ? l10n.stockOut : '$available left';
+          return '• ${e.key.name} (${e.value}×, $availText)';
+        })
+        .join('\n');
+  }
+
+  Future<void> _addItem(MenuItem item) async {
+    final l10n = context.l10n;
+    final nextQty = (_cart[item] ?? 0) + 1;
+    final available = item.availableServings;
+    final wouldExceed = item.isOutOfStock || (available != null && nextQty > available);
+
+    if (wouldExceed && !_allowOversell) {
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: AppTheme.surface,
+          title: Text(l10n.stockBlockedTitle),
+          content: Text(l10n.stockBlockedBody(item.name)),
+          actions: [
+            FilledButton(onPressed: () => Navigator.pop(ctx), child: Text(l10n.close)),
+          ],
+        ),
+      );
+      return;
+    }
+
+    if (wouldExceed && _allowOversell) {
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: AppTheme.surface,
+          title: Text(l10n.stockEmptyTitle),
+          content: Text(l10n.stockEmptyBody(item.name)),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel)),
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: AppTheme.danger),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(l10n.sellAnyway),
+            ),
+          ],
+        ),
+      );
+      if (ok != true) return;
+    }
+
+    setState(() => _cart[item] = nextQty);
+  }
 
   void _removeItem(MenuItem item) => setState(() {
         final q = (_cart[item] ?? 1) - 1;
@@ -72,6 +135,45 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
     return tabs.where((t) => t.id == tabId).map((t) => t.tableLabel).firstOrNull;
   }
 
+  Future<bool> _confirmStockIfNeeded() async {
+    final l10n = context.l10n;
+    if (_stockRiskLines.isEmpty) return true;
+
+    final summary = _stockRiskSummary(l10n);
+    if (!_allowOversell) {
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: AppTheme.surface,
+          title: Text(l10n.stockBlockedTitle),
+          content: Text(l10n.stockBlockedBody(summary)),
+          actions: [
+            FilledButton(onPressed: () => Navigator.pop(ctx), child: Text(l10n.close)),
+          ],
+        ),
+      );
+      return false;
+    }
+
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.surface,
+        title: Text(l10n.stockEmptyTitle),
+        content: Text(l10n.stockEmptyBody(summary)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel)),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppTheme.danger),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l10n.sellAnyway),
+          ),
+        ],
+      ),
+    );
+    return ok == true;
+  }
+
   Future<void> _submit(_OrderSubmitAction action) async {
     final l10n = context.l10n;
     if (_cart.isEmpty) return;
@@ -79,6 +181,8 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.selectTabFirst)));
       return;
     }
+    if (!await _confirmStockIfNeeded()) return;
+
     setState(() => _busy = true);
     try {
       final lines = _cart.entries
@@ -118,7 +222,11 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
       }
       Navigator.pop(context);
     } on ApiException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message), backgroundColor: AppTheme.danger),
+        );
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -232,7 +340,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
                       total: _total,
                       busy: _busy,
                       isTab: isTab,
-                      onIncrement: _addItem,
+                      onIncrement: (item) => _addItem(item),
                       onDecrement: _removeItem,
                       onClear: _clearCart,
                       onAddToTab: () => _submit(_OrderSubmitAction.addToTab),
@@ -248,7 +356,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
                         child: ProductGrid(
                           items: items,
                           cart: _cart,
-                          onAdd: _addItem,
+                          onAdd: (item) => _addItem(item),
                           onRemove: _removeItem,
                           emptyMessage: _searchQuery.isNotEmpty ? l10n.noItemsFound : null,
                         ),

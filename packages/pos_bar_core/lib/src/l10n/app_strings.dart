@@ -63,6 +63,17 @@ class AppStrings {
   String get noItemsFound => _sw ? 'Hakuna bidhaa' : 'No items found';
   String get tapToAddHint => _sw ? 'Gusa bidhaa kuongeza kwenye kikapu' : 'Tap an item to add to cart';
   String get clearCart => _sw ? 'Futa' : 'Clear';
+  String get stockLow => _sw ? 'CHINI' : 'LOW';
+  String get stockOut => _sw ? 'IMEISHA' : 'OUT';
+  String get stockEmptyTitle => _sw ? 'Stock imeisha' : 'Stock empty';
+  String stockEmptyBody(String items) => _sw
+      ? 'Bidhaa hizi hazina stock ya kutosha:\n$items\n\nUnataka kuuza hata hivyo?'
+      : 'These items do not have enough stock:\n$items\n\nSell anyway?';
+  String get sellAnyway => _sw ? 'Uza hata hivyo' : 'Sell anyway';
+  String get stockBlockedTitle => _sw ? 'Haiwezi kuuzwa' : 'Cannot sell';
+  String stockBlockedBody(String items) => _sw
+      ? 'Stock imeisha kwa:\n$items\n\nOversell imezimwa. Wasiliana na mmiliki.'
+      : 'Out of stock for:\n$items\n\nOversell is disabled. Ask the owner.';
 
   String get tabDetails => _sw ? 'Maelezo ya tab' : 'Tab details';
   String get sendToBartender => _sw ? 'Tuma kwa bartenda' : 'Send to bartender';
