@@ -291,15 +291,46 @@ class _ProductTile extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 6),
-                    Text(
-                      formatMoneyCompact(item.sellPrice),
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Color(0xFF2563eb),
-                        fontWeight: FontWeight.w800,
-                        fontSize: 14,
+                    if (item.hasPromo) ...[
+                      Text(
+                        formatMoneyCompact(item.listPrice!),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Color(0xFF94a3b8),
+                          fontWeight: FontWeight.w600,
+                          fontSize: 11,
+                          decoration: TextDecoration.lineThrough,
+                        ),
                       ),
-                    ),
+                      Text(
+                        formatMoneyCompact(item.sellPrice),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Color(0xFFdc2626),
+                          fontWeight: FontWeight.w800,
+                          fontSize: 14,
+                        ),
+                      ),
+                      if (item.promoLabel != null)
+                        Text(
+                          item.promoLabel!,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Color(0xFFdc2626),
+                            fontWeight: FontWeight.w700,
+                            fontSize: 10,
+                          ),
+                        ),
+                    ] else
+                      Text(
+                        formatMoneyCompact(item.sellPrice),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Color(0xFF2563eb),
+                          fontWeight: FontWeight.w800,
+                          fontSize: 14,
+                        ),
+                      ),
                   ],
                 ),
               ),
