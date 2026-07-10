@@ -353,24 +353,30 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
                     Expanded(
                       child: ColoredBox(
                         color: AppTheme.background,
-                        child: ProductGrid(
-                          items: items,
-                          cart: _cart,
-                          onAdd: (item) => _addItem(item),
-                          onRemove: _removeItem,
-                          emptyMessage: _searchQuery.isNotEmpty ? l10n.noItemsFound : null,
+                        child: Column(
+                          children: [
+                            Expanded(
+                              child: ProductGrid(
+                                items: items,
+                                cart: _cart,
+                                onAdd: (item) => _addItem(item),
+                                onRemove: _removeItem,
+                                emptyMessage: _searchQuery.isNotEmpty ? l10n.noItemsFound : null,
+                              ),
+                            ),
+                            if (_searchQuery.isEmpty)
+                              CategoryTabBar(
+                                categories: categories,
+                                selectedIndex: safeIndex,
+                                onSelected: (i) => setState(() => _categoryIndex = i),
+                              ),
+                          ],
                         ),
                       ),
                     ),
                   ],
                 ),
               ),
-              if (_searchQuery.isEmpty)
-                CategoryTabBar(
-                  categories: categories,
-                  selectedIndex: safeIndex,
-                  onSelected: (i) => setState(() => _categoryIndex = i),
-                ),
             ],
           );
         },

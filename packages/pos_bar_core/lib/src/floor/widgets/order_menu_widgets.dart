@@ -115,6 +115,27 @@ class OrderTopBar extends StatelessWidget {
   }
 }
 
+/// Shared metrics so category name tiles match product/order tiles.
+class OrderMenuGridMetrics {
+  static const padding = 12.0;
+  static const spacing = 10.0;
+  static const aspectRatio = 1.05;
+
+  static int columnCount(double width) {
+    if (width > 1100) return 6;
+    if (width > 850) return 5;
+    if (width > 600) return 4;
+    return 3;
+  }
+
+  static Size tileSize(double gridWidth) {
+    final columns = columnCount(gridWidth);
+    final tileWidth = (gridWidth - padding * 2 - spacing * (columns - 1)) / columns;
+    final tileHeight = tileWidth / aspectRatio;
+    return Size(tileWidth, tileHeight);
+  }
+}
+
 class CategoryTabBar extends StatelessWidget {
   const CategoryTabBar({
     super.key,
@@ -133,48 +154,59 @@ class CategoryTabBar extends StatelessWidget {
       color: AppTheme.surface,
       child: SafeArea(
         top: false,
-        child: SizedBox(
-          height: 72,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            itemCount: categories.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 8),
-            itemBuilder: (context, index) {
-              final cat = categories[index];
-              final color = MenuCategoryColors.forIndex(index);
-              final selected = index == selectedIndex;
-              final labelColor = MenuCategoryColors.labelOn(color);
-              return Material(
-                color: color,
-                borderRadius: BorderRadius.circular(10),
-                elevation: selected ? 4 : 0,
-                child: InkWell(
-                  onTap: () => onSelected(index),
-                  borderRadius: BorderRadius.circular(10),
-                  child: Container(
-                    constraints: const BoxConstraints(minWidth: 120),
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                    decoration: BoxDecoration(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final tile = OrderMenuGridMetrics.tileSize(constraints.maxWidth);
+            return SizedBox(
+              height: tile.height + OrderMenuGridMetrics.padding * 2,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.all(OrderMenuGridMetrics.padding),
+                itemCount: categories.length,
+                separatorBuilder: (_, __) => const SizedBox(width: OrderMenuGridMetrics.spacing),
+                itemBuilder: (context, index) {
+                  final cat = categories[index];
+                  final color = MenuCategoryColors.forIndex(index);
+                  final selected = index == selectedIndex;
+                  final labelColor = MenuCategoryColors.labelOn(color);
+                  return SizedBox(
+                    width: tile.width,
+                    height: tile.height,
+                    child: Material(
+                      color: color,
                       borderRadius: BorderRadius.circular(10),
-                      border: selected ? Border.all(color: Colors.white, width: 3) : null,
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      cat.name.toUpperCase(),
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: labelColor,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 14,
-                        letterSpacing: 0.3,
+                      elevation: selected ? 4 : 0,
+                      child: InkWell(
+                        onTap: () => onSelected(index),
+                        borderRadius: BorderRadius.circular(10),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(10),
+                            border: selected ? Border.all(color: Colors.white, width: 3) : null,
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            cat.name.toUpperCase(),
+                            textAlign: TextAlign.center,
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: labelColor,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 13,
+                              height: 1.15,
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                ),
-              );
-            },
-          ),
+                  );
+                },
+              ),
+            );
+          },
         ),
       ),
     );
@@ -210,14 +242,14 @@ class ProductGrid extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final columns = _columnCount(constraints.maxWidth);
+        final columns = OrderMenuGridMetrics.columnCount(constraints.maxWidth);
         return GridView.builder(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(OrderMenuGridMetrics.padding),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: columns,
-            mainAxisSpacing: 10,
-            crossAxisSpacing: 10,
-            childAspectRatio: 1.05,
+            mainAxisSpacing: OrderMenuGridMetrics.spacing,
+            crossAxisSpacing: OrderMenuGridMetrics.spacing,
+            childAspectRatio: OrderMenuGridMetrics.aspectRatio,
           ),
           itemCount: items.length,
           itemBuilder: (context, index) => _ProductTile(
@@ -229,13 +261,6 @@ class ProductGrid extends StatelessWidget {
         );
       },
     );
-  }
-
-  int _columnCount(double width) {
-    if (width > 1100) return 6;
-    if (width > 850) return 5;
-    if (width > 600) return 4;
-    return 3;
   }
 }
 
