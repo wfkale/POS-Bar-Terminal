@@ -43,6 +43,8 @@ class _BarTerminalAppState extends State<BarTerminalApp> {
 
   bool get _isBartender => _session?.staff.role == 'cashier' || _pendingStaff?.role == 'cashier';
 
+  bool get _sessionActive => _session != null || _pendingStaff != null;
+
   void _resetToSplash() => setState(() {
         _session = null;
         _pendingStaff = null;
@@ -50,6 +52,11 @@ class _BarTerminalAppState extends State<BarTerminalApp> {
         _activeShift = null;
         _api = ApiClient(config: _config);
       });
+
+  void _onIdleLogout() {
+    if (!_sessionActive) return;
+    _resetToSplash();
+  }
 
   void _onStaffSelected(StaffCard staff) => setState(() => _pendingStaff = staff);
 
@@ -107,7 +114,6 @@ class _BarTerminalAppState extends State<BarTerminalApp> {
         session: _session!,
         shift: _activeShift!,
         onEndShift: () async => _resetToSplash(),
-        onLogout: () async => _resetToSplash(),
       );
     }
 
@@ -168,6 +174,12 @@ class _BarTerminalAppState extends State<BarTerminalApp> {
                 Locale('en'),
                 Locale('sw'),
               ],
+              builder: (context, child) => IdleLogoutScope(
+                enabled: _sessionActive,
+                timeout: const Duration(seconds: 10),
+                onIdle: _onIdleLogout,
+                child: child ?? const SizedBox.shrink(),
+              ),
               home: _buildHome(),
             ),
           ),
