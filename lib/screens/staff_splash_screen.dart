@@ -78,7 +78,7 @@ class _StaffSplashScreenState extends State<StaffSplashScreen> {
                         crossAxisCount: 4,
                         mainAxisSpacing: 16,
                         crossAxisSpacing: 16,
-                        childAspectRatio: 0.78,
+                        childAspectRatio: 1,
                       ),
                       itemCount: floorStaff.length,
                       itemBuilder: (context, index) {
