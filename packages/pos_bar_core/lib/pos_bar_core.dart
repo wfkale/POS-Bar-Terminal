@@ -21,6 +21,7 @@ export 'src/config/venue_scope.dart';
 export 'src/layout/breakpoints.dart';
 export 'src/models/venue_config.dart';
 export 'src/widgets/venue_branding.dart';
+export 'src/widgets/kasi_credit.dart';
 export 'src/theme/app_theme.dart';
 export 'src/widgets/numeric_keypad.dart';
 export 'src/widgets/idle_logout_scope.dart';

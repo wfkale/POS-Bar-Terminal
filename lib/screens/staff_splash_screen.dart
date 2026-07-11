@@ -99,6 +99,7 @@ class _StaffSplashScreenState extends State<StaffSplashScreen> {
                   },
                 ),
               ),
+              const KasiCredit(),
             ],
           ),
         ),

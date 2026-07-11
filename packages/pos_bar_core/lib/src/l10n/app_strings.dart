@@ -181,4 +181,10 @@ class AppStrings {
   String get printerNeeded => _sw
       ? 'Unganisha printa kwenye Mipangilio ya printa kwanza'
       : 'Pair a printer in Printer settings first';
+
+  // Developer credit
+  String get kasiEngineeredBy => _sw ? 'imeundwa_na' : 'engineered_by';
+  String get kasiTagline => _sw ? 'mifumo inayosukuma biashara' : 'systems that move commerce';
+  String get kasiCreditA11y =>
+      _sw ? 'Imeundwa na KASI Technologies' : 'Engineered by KASI Technologies';
 }
