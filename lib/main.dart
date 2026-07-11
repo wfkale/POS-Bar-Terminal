@@ -114,6 +114,7 @@ class _BarTerminalAppState extends State<BarTerminalApp> {
         session: _session!,
         shift: _activeShift!,
         onEndShift: () async => _resetToSplash(),
+        onLogout: () async => _resetToSplash(),
       );
     }
 

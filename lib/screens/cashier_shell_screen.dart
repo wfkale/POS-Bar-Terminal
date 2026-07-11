@@ -44,6 +44,7 @@ class _CashierShellScreenState extends State<CashierShellScreen> {
           FloorHomeScreen(
             api: widget.api,
             session: widget.session,
+            onLogout: () => widget.onLogout(),
           ),
         ],
       ),
