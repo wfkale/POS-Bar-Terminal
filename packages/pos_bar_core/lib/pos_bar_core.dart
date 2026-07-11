@@ -18,6 +18,7 @@ export 'src/floor/open_tabs_screen.dart';
 export 'src/floor/tab_detail_screen.dart';
 export 'src/models/tab_deletion_request.dart';
 export 'src/config/venue_scope.dart';
+export 'src/layout/breakpoints.dart';
 export 'src/models/venue_config.dart';
 export 'src/widgets/venue_branding.dart';
 export 'src/theme/app_theme.dart';

@@ -30,7 +30,7 @@ class _StaffSplashScreenState extends State<StaffSplashScreen> {
     return Scaffold(
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(MediaQuery.sizeOf(context).width < 500 ? 16 : 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -73,21 +73,26 @@ class _StaffSplashScreenState extends State<StaffSplashScreen> {
                         .where((s) => s.role == 'bar_attendant' || s.role == 'cashier')
                         .toList();
 
-                    return GridView.builder(
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 4,
-                        mainAxisSpacing: 16,
-                        crossAxisSpacing: 16,
-                        childAspectRatio: 1,
-                      ),
-                      itemCount: floorStaff.length,
-                      itemBuilder: (context, index) {
-                        final staff = floorStaff[index];
-                        final roleLabel = staff.role == 'cashier' ? l10n.bartenderRole : l10n.barAttendant;
-                        return _NameCard(
-                          staff: staff,
-                          roleLabel: roleLabel,
-                          onTap: () => widget.onStaffSelected(staff),
+                    return LayoutBuilder(
+                      builder: (context, constraints) {
+                        final columns = PosBreakpoints.signInColumns(constraints.maxWidth);
+                        return GridView.builder(
+                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: columns,
+                            mainAxisSpacing: 16,
+                            crossAxisSpacing: 16,
+                            childAspectRatio: 1,
+                          ),
+                          itemCount: floorStaff.length,
+                          itemBuilder: (context, index) {
+                            final staff = floorStaff[index];
+                            final roleLabel = staff.role == 'cashier' ? l10n.bartenderRole : l10n.barAttendant;
+                            return _NameCard(
+                              staff: staff,
+                              roleLabel: roleLabel,
+                              onTap: () => widget.onStaffSelected(staff),
+                            );
+                          },
                         );
                       },
                     );

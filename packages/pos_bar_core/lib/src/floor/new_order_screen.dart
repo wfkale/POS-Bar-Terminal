@@ -241,6 +241,19 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
     );
   }
 
+  Future<void> _openCompactCart(BuildContext context, Widget cart) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppTheme.surface,
+      builder: (ctx) {
+        final height = MediaQuery.sizeOf(ctx).height * 0.88;
+        return SizedBox(height: height, child: cart);
+      },
+    );
+    if (mounted) setState(() {});
+  }
+
   Widget? _buildTabPicker(AppStrings l10n) {
     if (widget.type != 'tab') return null;
     return FutureBuilder<List<BarTab>>(
@@ -332,10 +345,34 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
                 tabPicker: _buildTabPicker(l10n),
               ),
               Expanded(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    OrderCartPanel(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final compact = PosBreakpoints.isCompact(constraints.maxWidth);
+                    final menu = ColoredBox(
+                      color: AppTheme.background,
+                      child: Column(
+                        children: [
+                          Expanded(
+                            child: ProductGrid(
+                              items: items,
+                              cart: _cart,
+                              onAdd: (item) => _addItem(item),
+                              onRemove: _removeItem,
+                              emptyMessage: _searchQuery.isNotEmpty ? l10n.noItemsFound : null,
+                            ),
+                          ),
+                          if (_searchQuery.isEmpty)
+                            CategoryTabBar(
+                              categories: categories,
+                              selectedIndex: safeIndex,
+                              onSelected: (i) => setState(() => _categoryIndex = i),
+                            ),
+                        ],
+                      ),
+                    );
+
+                    final cart = OrderCartPanel(
+                      width: compact ? null : PosBreakpoints.cartWidth(constraints.maxWidth),
                       cart: _cart,
                       total: _total,
                       busy: _busy,
@@ -349,32 +386,59 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
                       onSendAndPrint: () => _submit(_OrderSubmitAction.sendAndPrint),
                       onViewTab: _viewTab,
                       showViewTab: _selectedTabId != null,
-                    ),
-                    Expanded(
-                      child: ColoredBox(
-                        color: AppTheme.background,
-                        child: Column(
-                          children: [
-                            Expanded(
-                              child: ProductGrid(
-                                items: items,
-                                cart: _cart,
-                                onAdd: (item) => _addItem(item),
-                                onRemove: _removeItem,
-                                emptyMessage: _searchQuery.isNotEmpty ? l10n.noItemsFound : null,
+                    );
+
+                    if (!compact) {
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          cart,
+                          Expanded(child: menu),
+                        ],
+                      );
+                    }
+
+                    final qty = _cart.values.fold<int>(0, (s, q) => s + q);
+                    return Column(
+                      children: [
+                        Expanded(child: menu),
+                        Material(
+                          color: AppTheme.surface,
+                          elevation: 8,
+                          child: SafeArea(
+                            top: false,
+                            child: InkWell(
+                              onTap: () => _openCompactCart(context, cart),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                child: Row(
+                                  children: [
+                                    Badge(
+                                      isLabelVisible: qty > 0,
+                                      label: Text('$qty'),
+                                      child: const Icon(Icons.shopping_cart, size: 28),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        qty == 0 ? l10n.cart : '${l10n.cart} · ${currencyFormat.format(_total)}',
+                                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                                      ),
+                                    ),
+                                    FilledButton.icon(
+                                      onPressed: () => _openCompactCart(context, cart),
+                                      icon: const Icon(Icons.keyboard_arrow_up),
+                                      label: Text(l10n.cart),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
-                            if (_searchQuery.isEmpty)
-                              CategoryTabBar(
-                                categories: categories,
-                                selectedIndex: safeIndex,
-                                onSelected: (i) => setState(() => _categoryIndex = i),
-                              ),
-                          ],
+                          ),
                         ),
-                      ),
-                    ),
-                  ],
+                      ],
+                    );
+                  },
                 ),
               ),
             ],

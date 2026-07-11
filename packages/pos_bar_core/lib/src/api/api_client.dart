@@ -108,6 +108,15 @@ class ApiClient {
     _ensureSuccess(res);
   }
 
+  Future<BarTabDetail> fetchTabDetail(int tabId) async {
+    final res = await http.get(
+      Uri.parse('${config.apiBaseUrl}/tabs/$tabId'),
+      headers: _headers,
+    );
+    _ensureSuccess(res);
+    return BarTabDetail.fromJson(jsonDecode(res.body)['data'] as Map<String, dynamic>);
+  }
+
   Future<BarOrder> createOrder({
     required String type,
     int? tabId,
@@ -210,15 +219,6 @@ class ApiClient {
       }),
     );
     _ensureSuccess(res);
-  }
-
-  Future<BarTabDetail> fetchTabDetail(int tabId) async {
-    final res = await http.get(
-      Uri.parse('${config.apiBaseUrl}/tabs/$tabId'),
-      headers: _headers,
-    );
-    _ensureSuccess(res);
-    return BarTabDetail.fromJson(jsonDecode(res.body)['data'] as Map<String, dynamic>);
   }
 
   void _ensureSuccess(http.Response res) {

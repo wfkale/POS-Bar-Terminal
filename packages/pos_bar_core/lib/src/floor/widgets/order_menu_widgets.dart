@@ -51,65 +51,86 @@ class OrderTopBar extends StatelessWidget {
     final l10n = context.l10n;
     return Material(
       color: AppTheme.surface,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SafeArea(
-            bottom: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(4, 4, 8, 8),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back, size: 28),
-                    onPressed: onBack,
-                    tooltip: l10n.close,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = PosBreakpoints.isCompact(constraints.maxWidth);
+          final titleBlock = Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
+                Text(
+                  categoryName.toUpperCase(),
+                  maxLines: compact ? 1 : 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: compact ? 18 : 22,
+                    fontWeight: FontWeight.w800,
+                    color: categoryColor,
+                    letterSpacing: 0.5,
                   ),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(title, style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
-                        Text(
-                          categoryName.toUpperCase(),
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w800,
-                            color: categoryColor,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (tabPicker != null) ...[tabPicker!, const SizedBox(width: 8)],
-                  if (onSearchToggle != null)
-                    IconButton(
-                      icon: Icon(searchOpen ? Icons.search_off : Icons.search, size: 26),
-                      tooltip: l10n.searchItems,
-                      onPressed: onSearchToggle,
-                    ),
-                  const FloorAppBarActions(),
-                ],
-              ),
+                ),
+              ],
             ),
-          ),
-          if (searchOpen && onSearchChanged != null)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-              child: TextField(
-                autofocus: true,
-                onChanged: onSearchChanged,
-                decoration: InputDecoration(
-                  hintText: l10n.searchItems,
-                  prefixIcon: const Icon(Icons.search),
-                  filled: true,
-                  fillColor: AppTheme.surfaceLight,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+          );
+
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(4, 4, 8, 8),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.arrow_back, size: 28),
+                            onPressed: onBack,
+                            tooltip: l10n.close,
+                          ),
+                          titleBlock,
+                          if (!compact && tabPicker != null) ...[
+                            Flexible(child: Align(alignment: Alignment.centerRight, child: tabPicker!)),
+                            const SizedBox(width: 8),
+                          ],
+                          if (onSearchToggle != null)
+                            IconButton(
+                              icon: Icon(searchOpen ? Icons.search_off : Icons.search, size: 26),
+                              tooltip: l10n.searchItems,
+                              onPressed: onSearchToggle,
+                            ),
+                          const FloorAppBarActions(),
+                        ],
+                      ),
+                      if (compact && tabPicker != null)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+                          child: Align(alignment: Alignment.centerLeft, child: tabPicker!),
+                        ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-        ],
+              if (searchOpen && onSearchChanged != null)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                  child: TextField(
+                    autofocus: true,
+                    onChanged: onSearchChanged,
+                    decoration: InputDecoration(
+                      hintText: l10n.searchItems,
+                      prefixIcon: const Icon(Icons.search),
+                      filled: true,
+                      fillColor: AppTheme.surfaceLight,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                    ),
+                  ),
+                ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -125,7 +146,8 @@ class OrderMenuGridMetrics {
     if (width > 1100) return 6;
     if (width > 850) return 5;
     if (width > 600) return 4;
-    return 3;
+    if (width > 420) return 3;
+    return 2;
   }
 
   static Size tileSize(double gridWidth) {
@@ -434,6 +456,7 @@ class OrderCartPanel extends StatelessWidget {
     required this.onClear,
     this.onViewTab,
     this.showViewTab = false,
+    this.width = 300,
   });
 
   final Map<MenuItem, int> cart;
@@ -449,6 +472,7 @@ class OrderCartPanel extends StatelessWidget {
   final VoidCallback onClear;
   final VoidCallback? onViewTab;
   final bool showViewTab;
+  final double? width;
 
   @override
   Widget build(BuildContext context) {
@@ -457,7 +481,7 @@ class OrderCartPanel extends StatelessWidget {
     final hasItems = cart.isNotEmpty;
 
     return Container(
-      width: 300,
+      width: width,
       color: AppTheme.surface,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -512,9 +536,13 @@ class OrderCartPanel extends StatelessWidget {
               color: AppTheme.surfaceLight,
               border: Border(top: BorderSide(color: AppTheme.background, width: 2)),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
+            child: SafeArea(
+              top: false,
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
                 Text(
                   '${l10n.total}: ${currency.format(total)}',
                   style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
@@ -574,6 +602,8 @@ class OrderCartPanel extends StatelessWidget {
                   ),
                 ],
               ],
+                ),
+              ),
             ),
           ),
         ],

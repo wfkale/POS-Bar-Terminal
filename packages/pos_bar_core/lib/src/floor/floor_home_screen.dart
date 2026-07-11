@@ -20,8 +20,6 @@ class FloorHomeScreen extends StatelessWidget {
   final VoidCallback? onLogout;
   final List<Widget> extraAppBarActions;
 
-  static const _columns = 3;
-  static const _rows = 2;
   static const _padding = 16.0;
   static const _spacing = 12.0;
 
@@ -96,10 +94,27 @@ class FloorHomeScreen extends StatelessWidget {
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
+          final columns = PosBreakpoints.homeColumns(constraints.maxWidth);
+          final compact = PosBreakpoints.isCompact(constraints.maxWidth);
           final gridWidth = constraints.maxWidth - _padding * 2;
           final gridHeight = constraints.maxHeight - _padding * 2;
-          final tileWidth = (gridWidth - _spacing * (_columns - 1)) / _columns;
-          final tileHeight = (gridHeight - _spacing * (_rows - 1)) / _rows;
+          final rows = (tiles.length / columns).ceil();
+
+          if (compact || gridHeight < 280) {
+            return Padding(
+              padding: const EdgeInsets.all(_padding),
+              child: GridView.count(
+                crossAxisCount: columns,
+                mainAxisSpacing: _spacing,
+                crossAxisSpacing: _spacing,
+                childAspectRatio: 1.15,
+                children: tiles,
+              ),
+            );
+          }
+
+          final tileWidth = (gridWidth - _spacing * (columns - 1)) / columns;
+          final tileHeight = (gridHeight - _spacing * (rows - 1)) / rows;
           final aspectRatio = tileWidth / tileHeight;
 
           return Padding(
@@ -108,7 +123,7 @@ class FloorHomeScreen extends StatelessWidget {
               width: gridWidth,
               height: gridHeight,
               child: GridView.count(
-                crossAxisCount: _columns,
+                crossAxisCount: columns,
                 mainAxisSpacing: _spacing,
                 crossAxisSpacing: _spacing,
                 childAspectRatio: aspectRatio,

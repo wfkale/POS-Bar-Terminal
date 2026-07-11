@@ -82,74 +82,97 @@ class _OpenShiftScreenState extends State<OpenShiftScreen> {
         title: Text(l10n.openShiftTitle(widget.till.name)),
         actions: const [FloorAppBarActions()],
       ),
-      body: Row(
-        children: [
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(32),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(l10n.hi(widget.cashierName), style: Theme.of(context).textTheme.headlineSmall),
-                  const SizedBox(height: 8),
-                  Text(l10n.openingFloatIntro, style: const TextStyle(color: AppTheme.textSecondary)),
-                  const SizedBox(height: 32),
-                  Text(l10n.openingFloat, style: Theme.of(context).textTheme.labelLarge),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                    decoration: BoxDecoration(
-                      color: AppTheme.surface,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppTheme.accent.withOpacity(0.4)),
-                    ),
-                    child: Text(
-                      '$currencyCode $display',
-                      style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold, fontFeatures: [FontFeature.tabularFigures()]),
-                    ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = PosBreakpoints.isCompact(constraints.maxWidth);
+          final form = Padding(
+            padding: EdgeInsets.all(compact ? 20 : 32),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(l10n.hi(widget.cashierName), style: Theme.of(context).textTheme.headlineSmall),
+                const SizedBox(height: 8),
+                Text(l10n.openingFloatIntro, style: const TextStyle(color: AppTheme.textSecondary)),
+                const SizedBox(height: 32),
+                Text(l10n.openingFloat, style: Theme.of(context).textTheme.labelLarge),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  decoration: BoxDecoration(
+                    color: AppTheme.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppTheme.accent.withOpacity(0.4)),
                   ),
-                  if (_error != null) ...[
-                    const SizedBox(height: 12),
-                    Text(_error!, style: const TextStyle(color: AppTheme.danger)),
-                  ],
-                  const SizedBox(height: 24),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: _loading ? null : _openShift,
-                          child: Text(l10n.skipNoFloat),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        flex: 2,
-                        child: FilledButton(
-                          onPressed: _loading ? null : _openShift,
-                          child: _loading
-                              ? const SizedBox(height: 22, width: 22, child: CircularProgressIndicator(strokeWidth: 2))
-                              : Text(l10n.openShiftBtn),
-                        ),
-                      ),
-                    ],
+                  child: Text(
+                    '$currencyCode $display',
+                    style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold, fontFeatures: [FontFeature.tabularFigures()]),
                   ),
+                ),
+                if (_error != null) ...[
+                  const SizedBox(height: 12),
+                  Text(_error!, style: const TextStyle(color: AppTheme.danger)),
                 ],
-              ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: _loading ? null : _openShift,
+                        child: Text(l10n.skipNoFloat),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 2,
+                      child: FilledButton(
+                        onPressed: _loading ? null : _openShift,
+                        child: _loading
+                            ? const SizedBox(height: 22, width: 22, child: CircularProgressIndicator(strokeWidth: 2))
+                            : Text(l10n.openShiftBtn),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-          ),
-          Container(
-            width: 320,
+          );
+
+          final keypad = Container(
+            width: compact ? null : (constraints.maxWidth * 0.4).clamp(260.0, 320.0),
             color: AppTheme.surface,
             padding: const EdgeInsets.all(16),
-            child: NumericKeypad(
-              showDecimal: true,
-              onDigit: _tapKey,
-              onBackspace: _backspace,
-              onClear: _clear,
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 360),
+                child: NumericKeypad(
+                  showDecimal: true,
+                  onDigit: _tapKey,
+                  onBackspace: _backspace,
+                  onClear: _clear,
+                ),
+              ),
             ),
-          ),
-        ],
+          );
+
+          if (compact) {
+            return SingleChildScrollView(
+              child: Column(
+                children: [
+                  form,
+                  SizedBox(height: 320, child: keypad),
+                ],
+              ),
+            );
+          }
+
+          return Row(
+            children: [
+              Expanded(child: form),
+              keypad,
+            ],
+          );
+        },
       ),
     );
   }

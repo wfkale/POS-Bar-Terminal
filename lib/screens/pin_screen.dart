@@ -26,7 +26,6 @@ class _PinScreenState extends State<PinScreen> {
 
   Future<void> _submit() async {
     if (_pin.length < 4) return;
-    final l10n = context.l10n;
     setState(() {
       _loading = true;
       _error = null;
@@ -36,7 +35,7 @@ class _PinScreenState extends State<PinScreen> {
       widget.onSuccess(session);
     } on ApiException catch (e) {
       setState(() {
-        _error = e.pinLoginMessage(l10n);
+        _error = e.message;
         _pin = '';
       });
     } finally {
@@ -69,20 +68,22 @@ class _PinScreenState extends State<PinScreen> {
         actions: const [FloorAppBarActions()],
       ),
       body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 360),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: PinEntryPanel(
-              staffName: widget.staff.name,
-              avatarColor: widget.staff.avatarColor,
-              pinLength: 4,
-              filledCount: _pin.length,
-              onDigit: _tapDigit,
-              onBackspace: _backspace,
-              error: _error,
-              loading: _loading,
-              subtitle: l10n.enterPin,
+        child: SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 360),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: PinEntryPanel(
+                staffName: widget.staff.name,
+                avatarColor: widget.staff.avatarColor,
+                pinLength: 4,
+                filledCount: _pin.length,
+                onDigit: _tapDigit,
+                onBackspace: _backspace,
+                error: _error,
+                loading: _loading,
+                subtitle: l10n.enterPin,
+              ),
             ),
           ),
         ),
