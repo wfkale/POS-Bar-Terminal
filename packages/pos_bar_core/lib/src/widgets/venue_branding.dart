@@ -54,39 +54,21 @@ class _VenueBrandingBody extends StatelessWidget {
           color: AppTheme.accent,
         );
 
-    if (config.logoUrl != null && config.logoUrl!.isNotEmpty) {
+    final logoUrl = config.logoUrl?.trim();
+    if (logoUrl != null && logoUrl.isNotEmpty) {
       return Center(
         child: SizedBox(
           height: height,
           width: maxWidth,
-          child: Image.network(
-            config.logoUrl!,
-            key: ValueKey(config.logoUrl),
-            fit: BoxFit.contain,
-            alignment: Alignment.center,
-            gaplessPlayback: false,
-            filterQuality: FilterQuality.high,
-            errorBuilder: (_, __, ___) => _VenueName(
+          child: _StableNetworkLogo(
+            url: logoUrl,
+            height: height,
+            maxWidth: maxWidth,
+            fallback: _VenueName(
               name: config.name,
               style: nameStyle ?? defaultNameStyle,
               textAlign: textAlign,
             ),
-            loadingBuilder: (context, child, loadingProgress) {
-              if (loadingProgress == null) return child;
-              return Center(
-                child: SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: AppTheme.accent.withOpacity(0.8),
-                    value: loadingProgress.expectedTotalBytes != null
-                        ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
-                        : null,
-                  ),
-                ),
-              );
-            },
           ),
         ),
       );
@@ -96,6 +78,92 @@ class _VenueBrandingBody extends StatelessWidget {
       name: config.name,
       style: nameStyle ?? defaultNameStyle,
       textAlign: textAlign,
+    );
+  }
+}
+
+/// Keeps showing the last successful logo frame across rebuilds / PWA updates.
+class _StableNetworkLogo extends StatefulWidget {
+  const _StableNetworkLogo({
+    required this.url,
+    required this.height,
+    required this.maxWidth,
+    required this.fallback,
+  });
+
+  final String url;
+  final double height;
+  final double maxWidth;
+  final Widget fallback;
+
+  @override
+  State<_StableNetworkLogo> createState() => _StableNetworkLogoState();
+}
+
+class _StableNetworkLogoState extends State<_StableNetworkLogo> {
+  var _failed = false;
+  var _retryToken = 0;
+  var _retryScheduled = false;
+
+  @override
+  void didUpdateWidget(covariant _StableNetworkLogo oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.url != widget.url) {
+      _failed = false;
+      _retryScheduled = false;
+      _retryToken++;
+    }
+  }
+
+  void _scheduleRetry() {
+    if (_retryScheduled || !mounted) return;
+    _retryScheduled = true;
+    Future<void>.delayed(const Duration(milliseconds: 800), () {
+      if (!mounted) return;
+      setState(() {
+        _failed = false;
+        _retryToken++;
+        _retryScheduled = false;
+      });
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_failed) {
+      _scheduleRetry();
+      return widget.fallback;
+    }
+
+    return Image.network(
+      widget.url,
+      key: ValueKey('${widget.url}#$_retryToken'),
+      fit: BoxFit.contain,
+      alignment: Alignment.center,
+      gaplessPlayback: true,
+      filterQuality: FilterQuality.high,
+      errorBuilder: (_, __, ___) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && !_failed) setState(() => _failed = true);
+        });
+        return widget.fallback;
+      },
+      loadingBuilder: (context, child, loadingProgress) {
+        if (loadingProgress == null) return child;
+        return Center(
+          child: SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: AppTheme.accent.withOpacity(0.8),
+              value: loadingProgress.expectedTotalBytes != null
+                  ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                  : null,
+            ),
+          ),
+        );
+      },
     );
   }
 }

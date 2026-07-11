@@ -166,7 +166,7 @@ class _BarTerminalAppState extends State<BarTerminalApp> {
           child: LocaleScope(
             controller: _locale,
             child: MaterialApp(
-              key: ValueKey('${_locale.locale.languageCode}_${_venue.venue.name}'),
+              key: ValueKey(_locale.locale.languageCode),
               title: _venue.venue.name,
               debugShowCheckedModeBanner: false,
               theme: AppTheme.dark(),

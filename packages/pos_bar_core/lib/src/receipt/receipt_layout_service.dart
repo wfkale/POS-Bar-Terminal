@@ -103,21 +103,21 @@ class ReceiptLayoutService {
       lines.add(_cline(location.toUpperCase()));
     }
 
-    lines.add(_cline('TEL: ${_field(receipt.phone)}'));
-    lines.add(_cline('TIN: ${_field(receipt.tin)}'));
-    lines.add(_cline('VRN: ${_field(receipt.vrn)}'));
-    lines.add(_cline('SERIAL NUMBER: ${_field(receipt.serialNumber)}'));
-    lines.add(_cline('UIN: ${_field(receipt.uin)}'));
+    if (_has(receipt.phone)) lines.add(_cline('TEL: ${receipt.phone!.trim()}'));
+    if (_has(receipt.tin)) lines.add(_cline('TIN: ${receipt.tin!.trim()}'));
+    if (_has(receipt.vrn)) lines.add(_cline('VRN: ${receipt.vrn!.trim()}'));
+    if (_has(receipt.serialNumber)) lines.add(_cline('SERIAL NUMBER: ${receipt.serialNumber!.trim()}'));
+    if (_has(receipt.uin)) lines.add(_cline('UIN: ${receipt.uin!.trim()}'));
     lines.add(const ReceiptLine(''));
 
     final customer = _has(receipt.customerName) ? receipt.customerName!.trim().toUpperCase() : 'WALK-IN CUSTOMER';
     lines.add(_cline('CUSTOMER NAME: $customer'));
     lines.add(_cline('CUSTOMER ID TYPE: ${_customerIdType(receipt)}'));
-    lines.add(_cline('CUSTOMER VRN: ${_field(receipt.customerVrn)}'));
+    if (_has(receipt.customerVrn)) lines.add(_cline('CUSTOMER VRN: ${receipt.customerVrn!.trim()}'));
     lines.add(const ReceiptLine(''));
 
     lines.add(_cline('RECEIPT NUMBER: ${receipt.documentNumber}'));
-    lines.add(_cline('ZNO: ${_field(receipt.zno)}'));
+    if (_has(receipt.zno)) lines.add(_cline('ZNO: ${receipt.zno!.trim()}'));
     lines.add(_cline('RECEIPT DATE: $date  TIME: $time'));
 
     if (_has(receipt.orderNumber)) lines.add(_cline('ORDER: ${receipt.orderNumber}'));
@@ -257,7 +257,14 @@ class ReceiptLayoutService {
 
   static String _rule() => '-' * thermalWidth;
 
-  static bool _has(String? value) => value != null && value.trim().isNotEmpty;
+  static bool _has(String? value) {
+    if (value == null) return false;
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return false;
+    // Never print placeholder blanks from older layouts.
+    if (trimmed.toUpperCase() == _nil) return false;
+    return true;
+  }
 
   static List<String> _wrap(String text, int width) {
     if (text.length <= width) return [text];

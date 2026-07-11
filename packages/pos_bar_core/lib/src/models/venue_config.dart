@@ -87,6 +87,32 @@ class VenueConfig {
             .toList(),
       );
 
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'logo_url': logoUrl,
+        'currency': currency,
+        'tax_rate': taxRate,
+        'allow_oversell': allowOversell,
+        'address': address,
+        'phone': phone,
+        'tin': tin,
+        'vrn': vrn,
+        'payment_methods': paymentMethods
+            .map((m) => {
+                  'code': m.code,
+                  'label': m.label,
+                  if (m.labelSw != null) 'label_sw': m.labelSw,
+                })
+            .toList(),
+        'lipa_numbers': lipaNumbers
+            .map((l) => {
+                  'provider': l.provider,
+                  'number': l.number,
+                })
+            .toList(),
+      };
+
   VenueConfig copyWith({
     String? name,
     String? logoUrl,
