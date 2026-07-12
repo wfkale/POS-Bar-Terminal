@@ -182,9 +182,12 @@ class AppStrings {
       ? 'Unganisha printa kwenye Mipangilio ya printa kwanza'
       : 'Pair a printer in Printer settings first';
 
-  // Developer credit
-  String get kasiEngineeredBy => _sw ? 'imeundwa_na' : 'engineered_by';
-  String get kasiTagline => _sw ? 'mifumo inayosukuma biashara' : 'systems that move commerce';
-  String get kasiCreditA11y =>
-      _sw ? 'Imeundwa na KASI Technologies' : 'Engineered by KASI Technologies';
+  // Developer credit — FK Solutions
+  String get fkForgedBy => _sw ? 'imetengenezwa_na' : 'forged_by';
+  String get fkTagline => _sw
+      ? 'mifumo maalum · imeundwa kulingana na biashara yako'
+      : 'custom builds · forged to fit your business';
+  String get fkCreditA11y => _sw
+      ? 'Imetengenezwa na FK Solutions. Simu +255768141059. Barua pepe sales@fksolutions.co'
+      : 'Forged by FK Solutions. Phone +255768141059. Email sales@fksolutions.co';
 }
