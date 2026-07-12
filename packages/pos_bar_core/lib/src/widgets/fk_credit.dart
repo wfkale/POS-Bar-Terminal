@@ -11,8 +11,9 @@ class FkCredit extends StatelessWidget {
   static const phone = '+255768141059';
   static const email = 'sales@fksolutions.co';
 
-  /// Quiet one-liner for thermal bills & receipts (bottom of slip).
-  static const receiptFooter = '// powered_by FK Solutions';
+  /// Quiet footer for thermal bills & receipts (bottom of slip).
+  static const receiptFooter = 'Powered by: FK Solutions';
+  static const receiptFooterPhone = '+255768141059';
 
   @override
   Widget build(BuildContext context) {

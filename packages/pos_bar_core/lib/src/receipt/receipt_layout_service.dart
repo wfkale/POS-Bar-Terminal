@@ -79,6 +79,7 @@ class ReceiptLayoutService {
     lines.add(_cline('*** END OF BILL ***'));
     lines.add(const ReceiptLine(''));
     lines.add(_cline(FkCredit.receiptFooter, style: ReceiptTextStyle.fine));
+    lines.add(_cline(FkCredit.receiptFooterPhone, style: ReceiptTextStyle.fine));
 
     return lines;
   }
@@ -160,6 +161,7 @@ class ReceiptLayoutService {
     ));
     lines.add(const ReceiptLine(''));
     lines.add(_cline(FkCredit.receiptFooter, style: ReceiptTextStyle.fine));
+    lines.add(_cline(FkCredit.receiptFooterPhone, style: ReceiptTextStyle.fine));
 
     return lines;
   }
