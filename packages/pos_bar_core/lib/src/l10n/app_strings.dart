@@ -193,11 +193,11 @@ class AppStrings {
       : 'Pair a printer in Printer settings first';
 
   // Developer credit — FK Solutions
-  String get fkForgedBy => _sw ? 'inaendeshwa_na' : 'powered_by';
+  String get fkForgedBy => _sw ? 'Inaendeshwa na:' : 'Powered by:';
   String get fkTagline => _sw
       ? 'mifumo maalum · imeundwa kulingana na biashara yako'
       : 'custom builds · forged to fit your business';
   String get fkCreditA11y => _sw
-      ? 'Inaendeshwa na FK Solutions. Simu +255768141059. Barua pepe sales@fksolutions.co'
-      : 'Powered by FK Solutions. Phone +255768141059. Email sales@fksolutions.co';
+      ? 'Inaendeshwa na: FK Solutions. Simu +255768141059. Barua pepe sales@fksolutions.co'
+      : 'Powered by: FK Solutions. Phone +255768141059. Email sales@fksolutions.co';
 }
