@@ -76,13 +76,9 @@ class _QueueScreenState extends State<QueueScreen> {
     VenueScope.of(context).refresh();
   }
 
-  Future<void> _openCheckout(BarOrder order) async {
+  Future<void> _payWithMethod(BarOrder order, String method) async {
     if (_paying) return;
-    await showPayCheckoutSheet(
-      context: context,
-      order: order,
-      onComplete: (method, {required bool withReceipt}) => _pay(order, method, withReceipt: withReceipt),
-    );
+    await _pay(order, method, withReceipt: true);
   }
 
   Future<void> _printBill(BarOrder order) async {
@@ -313,7 +309,7 @@ class _QueueScreenState extends State<QueueScreen> {
                   });
                 },
                 onPrint: _printBill,
-                onPay: _openCheckout,
+                onPay: _payWithMethod,
               );
             },
           ),
@@ -344,7 +340,7 @@ class _StaffDocketCard extends StatelessWidget {
   final bool printing;
   final VoidCallback onToggle;
   final ValueChanged<BarOrder> onPrint;
-  final ValueChanged<BarOrder> onPay;
+  final void Function(BarOrder order, String method) onPay;
 
   @override
   Widget build(BuildContext context) {
@@ -401,7 +397,7 @@ class _StaffDocketCard extends StatelessWidget {
                     busy: busy,
                     printing: printing,
                     onPrint: () => onPrint(order),
-                    onPay: () => onPay(order),
+                    onPay: (method) => onPay(order, method),
                   ),
                 ),
               ],
@@ -430,10 +426,13 @@ class _QueuedOrderTile extends StatelessWidget {
   final bool busy;
   final bool printing;
   final VoidCallback onPrint;
-  final VoidCallback onPay;
+  final ValueChanged<String> onPay;
 
   @override
   Widget build(BuildContext context) {
+    final locale = Localizations.localeOf(context).languageCode;
+    final methods = VenueScope.of(context).venue.paymentMethods;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
@@ -488,11 +487,11 @@ class _QueuedOrderTile extends StatelessWidget {
                     : const Icon(Icons.receipt_long, size: 18),
                 label: Text(l10n.printBill),
               ),
-              FilledButton.icon(
-                onPressed: busy ? null : onPay,
-                icon: const Icon(Icons.payments, size: 18),
-                label: Text(l10n.choosePayment),
-              ),
+              for (final method in methods)
+                FilledButton(
+                  onPressed: busy ? null : () => onPay(method.code),
+                  child: Text(method.labelForLocale(locale)),
+                ),
             ],
           ),
         ],
