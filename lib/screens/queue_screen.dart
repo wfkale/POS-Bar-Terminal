@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:pos_bar_core/pos_bar_core.dart';
 
 class QueueScreen extends StatefulWidget {
@@ -25,18 +26,21 @@ class QueueScreen extends StatefulWidget {
 
 class _QueueScreenState extends State<QueueScreen> {
   late Timer _pollTimer;
-  late Future<List<BarOrder>> _queueFuture;
+  List<BarOrder>? _orders;
+  Object? _loadError;
+  bool _loading = true;
   bool _paying = false;
   bool _printing = false;
+  final Set<String> _expandedDockets = {};
 
   @override
   void initState() {
     super.initState();
-    _queueFuture = widget.api.fetchCashierQueue();
+    _loadQueue();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) VenueScope.of(context).refresh();
     });
-    _pollTimer = Timer.periodic(const Duration(seconds: 5), (_) => _refreshQueue());
+    _pollTimer = Timer.periodic(const Duration(seconds: 5), (_) => _loadQueue(silent: true));
   }
 
   @override
@@ -45,12 +49,30 @@ class _QueueScreenState extends State<QueueScreen> {
     super.dispose();
   }
 
-  void _refreshQueue() {
-    setState(() => _queueFuture = widget.api.fetchCashierQueue());
+  Future<void> _loadQueue({bool silent = false}) async {
+    if (!silent && mounted) setState(() => _loading = true);
+    try {
+      final orders = await widget.api.fetchCashierQueue();
+      if (!mounted) return;
+      setState(() {
+        _orders = orders;
+        _loadError = null;
+        _loading = false;
+        _expandedDockets.removeWhere(
+          (key) => !StaffQueueDocket.group(orders).any((d) => d.key == key),
+        );
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loadError = e;
+        _loading = false;
+      });
+    }
   }
 
   void _refresh() {
-    _refreshQueue();
+    _loadQueue();
     VenueScope.of(context).refresh();
   }
 
@@ -63,7 +85,6 @@ class _QueueScreenState extends State<QueueScreen> {
     );
   }
 
-  /// Print proforma bill only — does not record payment (use checkout for pay).
   Future<void> _printBill(BarOrder order) async {
     if (_printing) return;
     setState(() => _printing = true);
@@ -160,6 +181,9 @@ class _QueueScreenState extends State<QueueScreen> {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final currency = currencyFormat;
+    final orders = _orders;
+    final dockets = orders == null ? const <StaffQueueDocket>[] : StaffQueueDocket.group(orders);
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: AppTheme.surface,
@@ -198,96 +222,280 @@ class _QueueScreenState extends State<QueueScreen> {
           ),
         ],
       ),
-      body: FutureBuilder<List<BarOrder>>(
-        future: _queueFuture,
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator(color: AppTheme.accent));
-          }
-          final orders = snapshot.data!;
-          if (orders.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.check_circle_outline, size: 64, color: AppTheme.success.withOpacity(0.7)),
-                  const SizedBox(height: 16),
-                  Text(l10n.queueClear, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 8),
-                  Text(l10n.waitingOrders, style: const TextStyle(color: AppTheme.textSecondary)),
-                ],
-              ),
-            );
-          }
-          return ListView.separated(
-            padding: const EdgeInsets.all(16),
-            itemCount: orders.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
-            itemBuilder: (context, i) {
-              final order = orders[i];
-              return Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Text(order.orderNumber, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                          const Spacer(),
-                          Chip(label: Text(order.type.toUpperCase()), backgroundColor: AppTheme.surfaceLight),
-                        ],
-                      ),
-                      if (order.staffName != null)
-                        Text(l10n.fromStaff(order.staffName!), style: const TextStyle(color: AppTheme.textSecondary)),
-                      if (order.tabCustomer != null)
-                        Text(l10n.tabCustomer(order.tabCustomer!), style: const TextStyle(color: AppTheme.textSecondary)),
-                      const Divider(),
-                      ...order.lines.map((l) => Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 2),
-                            child: Row(
-                              children: [
-                                Expanded(child: Text('${l.quantity}× ${l.itemName}')),
-                                Text(currency.format(l.lineTotal)),
-                              ],
-                            ),
-                          )),
-                      const SizedBox(height: 12),
-                      Text(
-                        currency.format(order.total),
-                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 12),
-                      Wrap(
-                        alignment: WrapAlignment.end,
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          OutlinedButton.icon(
-                            onPressed: (_paying || _printing) ? null : () => _printBill(order),
-                            icon: _printing
-                                ? const SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(strokeWidth: 2),
-                                  )
-                                : const Icon(Icons.receipt_long),
-                            label: Text(l10n.printBill),
-                          ),
-                          FilledButton.icon(
-                            onPressed: _paying ? null : () => _openCheckout(order),
-                            icon: const Icon(Icons.payments),
-                            label: Text(l10n.choosePayment),
-                          ),
-                        ],
-                      ),
-                    ],
+      body: _buildBody(l10n, currency, dockets),
+    );
+  }
+
+  Widget _buildBody(AppStrings l10n, NumberFormat currency, List<StaffQueueDocket> dockets) {
+    if (_loading && _orders == null) {
+      return const Center(child: CircularProgressIndicator(color: AppTheme.accent));
+    }
+    if (_loadError != null && _orders == null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('$_loadError', textAlign: TextAlign.center),
+              const SizedBox(height: 16),
+              FilledButton(onPressed: _refresh, child: Text(l10n.retry)),
+            ],
+          ),
+        ),
+      );
+    }
+    if (dockets.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.check_circle_outline, size: 64, color: AppTheme.success.withOpacity(0.7)),
+            const SizedBox(height: 16),
+            Text(l10n.queueClear, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 8),
+            Text(l10n.waitingOrders, style: const TextStyle(color: AppTheme.textSecondary)),
+          ],
+        ),
+      );
+    }
+
+    final totalOrders = dockets.fold<int>(0, (s, d) => s + d.orderCount);
+    final totalOwed = dockets.fold<double>(0, (s, d) => s + d.cumulativeOwed);
+
+    return Column(
+      children: [
+        Material(
+          color: AppTheme.surface,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+            child: Row(
+              children: [
+                const Icon(Icons.view_agenda_outlined, color: AppTheme.accent),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    l10n.queueSummary(
+                      staffCount: dockets.length,
+                      orderCount: totalOrders,
+                      total: currency.format(totalOwed),
+                    ),
+                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
                   ),
                 ),
+              ],
+            ),
+          ),
+        ),
+        const Divider(height: 1),
+        Expanded(
+          child: ListView.separated(
+            padding: const EdgeInsets.all(16),
+            itemCount: dockets.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            itemBuilder: (context, i) {
+              final docket = dockets[i];
+              final expanded = _expandedDockets.contains(docket.key);
+              return _StaffDocketCard(
+                docket: docket,
+                currency: currency,
+                l10n: l10n,
+                expanded: expanded,
+                busy: _paying || _printing,
+                printing: _printing,
+                onToggle: () {
+                  setState(() {
+                    if (expanded) {
+                      _expandedDockets.remove(docket.key);
+                    } else {
+                      _expandedDockets.add(docket.key);
+                    }
+                  });
+                },
+                onPrint: _printBill,
+                onPay: _openCheckout,
               );
             },
-          );
-        },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _StaffDocketCard extends StatelessWidget {
+  const _StaffDocketCard({
+    required this.docket,
+    required this.currency,
+    required this.l10n,
+    required this.expanded,
+    required this.busy,
+    required this.printing,
+    required this.onToggle,
+    required this.onPrint,
+    required this.onPay,
+  });
+
+  final StaffQueueDocket docket;
+  final NumberFormat currency;
+  final AppStrings l10n;
+  final bool expanded;
+  final bool busy;
+  final bool printing;
+  final VoidCallback onToggle;
+  final ValueChanged<BarOrder> onPrint;
+  final ValueChanged<BarOrder> onPay;
+
+  @override
+  Widget build(BuildContext context) {
+    final displayName = docket.staffName.isEmpty ? l10n.unknownStaff : docket.staffName;
+    final initial = displayName.isNotEmpty ? displayName.characters.first.toUpperCase() : '?';
+
+    return Material(
+      color: AppTheme.surface,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: onToggle,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  CircleAvatar(
+                    backgroundColor: AppTheme.accent.withOpacity(0.2),
+                    foregroundColor: AppTheme.accent,
+                    child: Text(initial, style: const TextStyle(fontWeight: FontWeight.w800)),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          displayName,
+                          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${l10n.staffOrderCount(docket.orderCount)} · ${l10n.cumulativeOwed(currency.format(docket.cumulativeOwed))}',
+                          style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(expanded ? Icons.expand_less : Icons.expand_more, color: AppTheme.textSecondary),
+                ],
+              ),
+              if (expanded) ...[
+                const SizedBox(height: 12),
+                const Divider(height: 1),
+                const SizedBox(height: 8),
+                ...docket.orders.map(
+                  (order) => _QueuedOrderTile(
+                    order: order,
+                    currency: currency,
+                    l10n: l10n,
+                    busy: busy,
+                    printing: printing,
+                    onPrint: () => onPrint(order),
+                    onPay: () => onPay(order),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _QueuedOrderTile extends StatelessWidget {
+  const _QueuedOrderTile({
+    required this.order,
+    required this.currency,
+    required this.l10n,
+    required this.busy,
+    required this.printing,
+    required this.onPrint,
+    required this.onPay,
+  });
+
+  final BarOrder order;
+  final NumberFormat currency;
+  final AppStrings l10n;
+  final bool busy;
+  final bool printing;
+  final VoidCallback onPrint;
+  final VoidCallback onPay;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceLight,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.background),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(order.orderNumber, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+              const Spacer(),
+              Chip(
+                label: Text(order.type.toUpperCase(), style: const TextStyle(fontSize: 11)),
+                visualDensity: VisualDensity.compact,
+                backgroundColor: AppTheme.surface,
+              ),
+            ],
+          ),
+          if (order.tabCustomer != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text(l10n.tabCustomer(order.tabCustomer!), style: const TextStyle(color: AppTheme.textSecondary)),
+            ),
+          const SizedBox(height: 8),
+          ...order.lines.map(
+            (l) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 1),
+              child: Row(
+                children: [
+                  Expanded(child: Text('${l.quantity}× ${l.itemName}', style: const TextStyle(fontSize: 13))),
+                  Text(currency.format(l.lineTotal), style: const TextStyle(fontSize: 13)),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(currency.format(order.total), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 10),
+          Wrap(
+            alignment: WrapAlignment.end,
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              OutlinedButton.icon(
+                onPressed: busy ? null : onPrint,
+                icon: printing
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.receipt_long, size: 18),
+                label: Text(l10n.printBill),
+              ),
+              FilledButton.icon(
+                onPressed: busy ? null : onPay,
+                icon: const Icon(Icons.payments, size: 18),
+                label: Text(l10n.choosePayment),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

@@ -6,6 +6,7 @@ export 'src/config/currency.dart';
 export 'src/models/cashier_roster.dart';
 export 'src/models/menu.dart';
 export 'src/models/order.dart';
+export 'src/models/staff_queue_docket.dart';
 export 'src/models/staff.dart';
 export 'src/models/tab.dart';
 export 'src/l10n/app_strings.dart';

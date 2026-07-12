@@ -116,6 +116,16 @@ class AppStrings {
   String fromStaff(String name) => _sw ? 'Kutoka: $name' : 'From: $name';
   String tabCustomer(String name) => _sw ? 'Tab: $name' : 'Tab: $name';
   String orderPaid(String orderNo) => _sw ? '$orderNo imelipwa' : '$orderNo paid';
+  String get staffDockets => _sw ? 'Docket kwa mhudumu' : 'Staff dockets';
+  String staffOrderCount(int count) => _sw
+      ? (count == 1 ? 'agizo 1' : 'maagizo $count')
+      : (count == 1 ? '1 order' : '$count orders');
+  String cumulativeOwed(String amount) => _sw ? 'Jumla inayodaiwa: $amount' : 'Owed: $amount';
+  String queueSummary({required int staffCount, required int orderCount, required String total}) =>
+      _sw
+          ? '$staffCount watu · $orderCount maagizo · $total'
+          : '$staffCount staff · $orderCount orders · $total';
+  String get unknownStaff => _sw ? 'Mfanyakazi asiyejulikana' : 'Unknown staff';
   String openShiftTitle(String till) => _sw ? 'Fungua shift · $till' : 'Open shift · $till';
   String get openingFloatIntro =>
       _sw ? 'Hesabu pesa kwenye droo na weka float ya kufungua.' : 'Count the cash in your drawer and enter the opening float.';

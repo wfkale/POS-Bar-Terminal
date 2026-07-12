@@ -8,6 +8,7 @@ class BarOrder {
     required this.lines,
     this.subtotal,
     this.taxAmount,
+    this.staffId,
     this.staffName,
     this.tabCustomer,
     this.paymentMethod,
@@ -21,6 +22,7 @@ class BarOrder {
   final double? subtotal;
   final double? taxAmount;
   final List<OrderLine> lines;
+  final int? staffId;
   final String? staffName;
   final String? tabCustomer;
   final String? paymentMethod;
@@ -35,6 +37,8 @@ class BarOrder {
       }
     }
 
+    final staff = json['staff'] as Map<String, dynamic>?;
+
     return BarOrder(
       id: json['id'] as int,
       orderNumber: json['order_number'] as String,
@@ -46,7 +50,8 @@ class BarOrder {
       lines: (json['lines'] as List<dynamic>? ?? [])
           .map((e) => OrderLine.fromJson(e as Map<String, dynamic>))
           .toList(),
-      staffName: (json['staff'] as Map<String, dynamic>?)?['name'] as String?,
+      staffId: staff?['id'] as int?,
+      staffName: staff?['name'] as String?,
       tabCustomer: (json['tab'] as Map<String, dynamic>?)?['customer_name'] as String?,
       paymentMethod: method,
     );
