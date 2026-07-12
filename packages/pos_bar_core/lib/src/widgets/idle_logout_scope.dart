@@ -9,7 +9,7 @@ class IdleLogoutScope extends StatefulWidget {
     required this.enabled,
     required this.onIdle,
     required this.child,
-    this.timeout = const Duration(seconds: 10),
+    this.timeout = const Duration(seconds: 30),
   });
 
   final bool enabled;

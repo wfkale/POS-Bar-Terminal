@@ -177,7 +177,7 @@ class _BarTerminalAppState extends State<BarTerminalApp> {
               ],
               builder: (context, child) => IdleLogoutScope(
                 enabled: _sessionActive,
-                timeout: const Duration(seconds: 10),
+                timeout: const Duration(seconds: 30),
                 onIdle: _onIdleLogout,
                 child: child ?? const SizedBox.shrink(),
               ),
