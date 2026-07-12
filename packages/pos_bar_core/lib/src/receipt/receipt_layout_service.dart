@@ -1,5 +1,6 @@
 import 'package:intl/intl.dart';
 
+import '../widgets/fk_credit.dart';
 import 'bar_receipt.dart';
 import 'receipt_line.dart';
 
@@ -76,6 +77,8 @@ class ReceiptLayoutService {
     }
     lines.add(const ReceiptLine(''));
     lines.add(_cline('*** END OF BILL ***'));
+    lines.add(const ReceiptLine(''));
+    lines.add(_cline(FkCredit.receiptFooter, style: ReceiptTextStyle.fine));
 
     return lines;
   }
@@ -155,6 +158,8 @@ class ReceiptLayoutService {
       '*** END OF SYSTEM GENERATED RECEIPT ***',
       style: ReceiptTextStyle.fine,
     ));
+    lines.add(const ReceiptLine(''));
+    lines.add(_cline(FkCredit.receiptFooter, style: ReceiptTextStyle.fine));
 
     return lines;
   }
